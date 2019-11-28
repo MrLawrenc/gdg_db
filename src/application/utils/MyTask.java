@@ -152,8 +152,8 @@ public class MyTask extends Task<String> {
 
 			addOtherInfo4Single(dbFile, allDataMap);
 
+			RecoredInfo.recored.recoredFileInfo(false, dbFile.getAbsolutePath());
 			dealAllData(allDataMap);
-			RecoredInfo.recored.recoredFileInfo(true, dbFile.getAbsolutePath());
 		} catch (Exception e) {
 			Log.log.writeLog(-1, "0异常，程序即将关闭" + ExceptionUtil.appendExceptionInfo(e));
 		}

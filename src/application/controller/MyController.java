@@ -119,20 +119,21 @@ public class MyController<E> implements Initializable {
 		sourceDbType.setDisable(true);
 		targetDbType.getSelectionModel().select("Mysql");
 		targetDbType.setDisable(true);
-		parentFilePath.setText("E:\\\\工电供资料\\\\document\\\\6.客户资料\\\\工务\\\\工务检测数据\\\\2019年第三季度综合检测车联检");
-//		parentFilePath.setText("F:\\gtdq\\资料");
+		parentFilePath
+				.setText("E:\\\\工电供资料\\\\document\\\\6.客户资料\\\\工务\\\\工务检测数据\\\\2019年第三季度综合检测车联检");
+		// parentFilePath.setText("F:\\gtdq\\资料");
 
-//		mysqlUrl.setText(
-//				"jdbc:mysql://localhost:3306/study?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC");
+		// mysqlUrl.setText(
+		// "jdbc:mysql://localhost:3306/study?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC");
 		mysqlUrl.setText(
 				"jdbc:mysql://47.96.158.220:3306/study?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC");
-//		mysqlUrl.setText(
-//				"jdbc:mysql://192.168.3.52:3306/idcty?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC");
+		// mysqlUrl.setText(
+		// "jdbc:mysql://192.168.3.52:3306/idcty?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC");
 		mysqlUsername.setText("root");
-//		mysqlPwd.setText("admin");
+		// mysqlPwd.setText("admin");
 		mysqlPwd.setText("@123lmyLMY.");
-//		mysqlUsername.setText("idcty");
-//		mysqlPwd.setText("123456Aa");
+		// mysqlUsername.setText("idcty");
+		// mysqlPwd.setText("123456Aa");
 	}
 
 	/*
@@ -143,17 +144,18 @@ public class MyController<E> implements Initializable {
 	 * 按照定死的规则，向mysql批量插入所有的access数据
 	 */
 	public void batchAdd() {
-//		try {
-//			initFileInfo();
-//		} catch (IOException e1) {
-//			// TODO Auto-generated catch block
-//			e1.printStackTrace();
-//		}
-//		if (cache != null) {
-//			mysqlUrl.setText(cache.url);
-//			mysqlUsername.setText(cache.username);
-//			mysqlPwd.setText(cache.password);
-//		}
+		try {
+			initFileInfo();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		if (cache.url != null) {
+			Log.log.writeLog(0, "获取到数据库连接信息缓存，直接使用！");
+			mysqlUrl.setText(cache.url);
+			mysqlUsername.setText(cache.username);
+			mysqlPwd.setText(cache.password);
+		}
 
 		String url = mysqlUrl.getText();
 		String username = mysqlUsername.getText();
@@ -176,19 +178,19 @@ public class MyController<E> implements Initializable {
 			return;
 		}
 
-		Thread initConn = new Thread(
-				() -> MySqlUtil.initConn(mysqlUrl.getText(), mysqlUsername.getText(), mysqlPwd.getText()));
+		Thread initConn = new Thread(() -> MySqlUtil.initConn(mysqlUrl.getText(),
+				mysqlUsername.getText(), mysqlPwd.getText()));
 		initConn.start();
 		progressBar.setProgress(0.1);
 		File parentFile;
 		try {
 			parentFile = new File(path);
 			if (!parentFile.exists()) {
-				dialog.setContentText("创建文件夹" + path + "失败!");
+				dialog.setContentText("文件夹" + path + "不存在!");
 				dialog.show();
 			}
 		} catch (Exception e) {
-			dialog.setContentText("创建文件夹" + path + "失败!");
+			dialog.setContentText("打开文件夹" + path + "失败!");
 			dialog.show();
 			return;
 		}
@@ -196,14 +198,16 @@ public class MyController<E> implements Initializable {
 		// 监听task的updateMessage方法,实现日志更新
 		task.messageProperty().addListener(new ChangeListener<String>() {
 			@Override
-			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+			public void changed(ObservableValue<? extends String> observable, String oldValue,
+					String newValue) {
 				log.appendText(LocalDateTime.now() + " " + newValue + "\n");
 			}
 		});
 		// 监听进度，实现进度条更新
 		task.progressProperty().addListener(new ChangeListener<Number>() {
 			@Override
-			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+			public void changed(ObservableValue<? extends Number> observable, Number oldValue,
+					Number newValue) {
 				System.out.println("进度条值:" + newValue.doubleValue());
 				progressBar.setProgress(newValue.doubleValue());
 
@@ -213,7 +217,8 @@ public class MyController<E> implements Initializable {
 		// 获取监听task的call方法返回值
 		task.valueProperty().addListener(new ChangeListener<String>() {
 			@Override
-			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+			public void changed(ObservableValue<? extends String> observable, String oldValue,
+					String newValue) {
 				// logUtil.infoLog("全部执行完毕");
 				System.out.println(Thread.currentThread().getName() + " call() 返回值：" + newValue);
 				log.appendText(LocalDateTime.now() + " 数据处理完毕!\n");
@@ -238,7 +243,7 @@ public class MyController<E> implements Initializable {
 		while ((line = br.readLine()) != null) {
 
 			// 添加换行符
-//            tempStream.append(System.getProperty("line.separator"))
+			// tempStream.append(System.getProperty("line.separator"))
 			if (line.contains(RecoredInfo.recored.mysqlInfo)) {
 				String[] mysqlInfo = line.split(RecoredInfo.recored.mysqlInfo)[1].split(" ");
 				cache.url = mysqlInfo[0];

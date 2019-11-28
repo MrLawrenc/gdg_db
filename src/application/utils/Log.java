@@ -40,6 +40,7 @@ public class Log {
 				}
 				try {
 					outStream.write(result + suffix);
+					outStream.flush();
 				} catch (IOException e) {
 					System.out.println("输出流已关闭，以下信息不做记录:" + result);
 				}
@@ -92,6 +93,7 @@ public class Log {
 
 			System.out.println("关闭log文件流!");
 			if (outStream != null) {
+				outStream.flush();
 				outStream.close();
 			}
 			if (fos != null) {
