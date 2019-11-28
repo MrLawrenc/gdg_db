@@ -22,11 +22,11 @@
         <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
       </rowConstraints>
     </GridPane>
-    <TabPane layoutX="0.0" layoutY="0.0" prefHeight="529.0" prefWidth="562.0" tabClosingPolicy="UNAVAILABLE">
+    <TabPane id="bg" layoutX="0.0" layoutY="0.0" prefHeight="529.0" prefWidth="562.0" style="" tabClosingPolicy="UNAVAILABLE">
       <tabs>
-        <Tab fx:id="oneTab" text="连接设置">
+        <Tab id="oneTab" fx:id="oneTab" style="" text="连接设置">
           <content>
-            <AnchorPane id="Content" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+            <AnchorPane id="Content" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" style="">
               <children>
                 <TextField fx:id="parentFilePath" layoutX="156.0" layoutY="63.0" prefWidth="298.0" />
                 <Text layoutX="300.0" layoutY="29.0" strokeType="OUTSIDE" strokeWidth="0.0" text="源数据类型选择" />
@@ -58,18 +58,9 @@
                 <TextField id="parentFilePath" fx:id="mysqlPwd" layoutX="156.0" layoutY="159.0" prefWidth="298.0" promptText="password" />
                 <TextArea fx:id="log" layoutX="21.0" layoutY="269.0" prefHeight="215.0" prefWidth="527.0" text="jdbc:mysql://localhost:3306/study?useUnicode=true&amp;characterEncoding=utf-8&amp;useSSL=true&amp;serverTimezone=UTC&#10;&#10;root&#10;admin&#10;&#10;F:\\gtdq\\gtdq_gdg\\lib&#10;&#10;E:\\工电供资料\\document\\6.客户资料\\工务\\工务检测数据\\2019年第三季度综合检测车联检" wrapText="true" />
                 <Text layoutX="28.0" layoutY="254.0" strokeType="OUTSIDE" strokeWidth="0.0" text="日志" />
-                <Button id="dbBtn" fx:id="batch" layoutX="447.0" layoutY="199.0" mnemonicParsing="false" onAction="#batchAdd" text="execute" />
-                <ProgressBar fx:id="progressBar" layoutX="156.0" layoutY="199.0" prefHeight="22.0" prefWidth="200.0" progress="-1.0" />
-                <Text layoutX="77.0" layoutY="214.0" strokeType="OUTSIDE" strokeWidth="0.0" text="进度条" />
-              </children>
-            </AnchorPane>
-          </content>
-        </Tab>
-        <Tab text="详细日志">
-          <content>
-            <AnchorPane id="Content" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
-              <children>
-                <TextArea id="iang" fx:id="detailLog" layoutX="14.0" layoutY="14.0" prefHeight="471.0" prefWidth="535.0" wrapText="true" />
+                <Button id="dbBtn" fx:id="batch" layoutX="483.0" layoutY="200.0" mnemonicParsing="false" onAction="#batchAdd" text="execute" />
+                <ProgressBar fx:id="progressBar" layoutX="156.0" layoutY="200.0" prefHeight="21.0" prefWidth="298.0" progress="-1.0" />
+                <Text layoutX="77.0" layoutY="212.0" strokeType="OUTSIDE" strokeWidth="0.0" text="进度条" />
               </children>
             </AnchorPane>
           </content>

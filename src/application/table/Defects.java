@@ -1,10 +1,8 @@
 package application.table;
 
-import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.SQLType;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.List;
@@ -27,10 +25,10 @@ public class Defects {
 	/**
 	 * 部分数据库不需要的字段为“”，后面会直接跳过
 	 */
-	private static String[] fields = new String[]{"id", "svalue3", "svalue4", "raised_time", "",
-			"nvalue6", "code", "svalue1", "nvalue5", "", "", "nvalue1", "nvalue2", "svalue2",
-			"nvalue3", "nvalue4", "severity", "", "", "", "", "", "", "", "nvalue11", "nvalue12",
-			"", "", "", "", "", "", "", "", "", "", "line_name", "direction", "power_section_name"};
+	private static String[] fields = new String[] { "id", "svalue3", "svalue4", "raised_time", "", "nvalue6", "code",
+			"svalue1", "nvalue5", "", "", "nvalue1", "nvalue2", "svalue2", "nvalue3", "nvalue4", "severity", "", "", "",
+			"", "", "", "", "nvalue11", "nvalue12", "", "", "", "", "", "", "", "", "", "", "line_name", "direction",
+			"power_section_name" };
 	// 临时表和access数据库字段一对对应：svalue3 svalue4 RunDate RunTime nvalue6 code svalue1
 	// nvalue5 maxpost maxminor
 	// nvalue1 nvalue2 svalue2 nvalue3 nvalue4 severity valid frompost fromminor
@@ -40,8 +38,8 @@ public class Defects {
 
 	public static void save(List<List<String>> metaNames, List<List<String>> data, MyTask task) {
 		task.log("defects表数据总量:" + data.size());
-		
-		StringBuilder sql = new StringBuilder("insert into alarm (");
+		Log.log.writeLog(0, "defects数据总量:" + data.size());
+		StringBuilder sql = new StringBuilder("insert into alarm_copy1 (");
 		for (int i = 0; i < fields.length; i++) {
 			if (fields[i].equals("")) {
 				continue;
@@ -71,8 +69,7 @@ public class Defects {
 					if (StringUtils.isEmpty(runDataStr)) {
 						result = "2019-11-27 14:10:03";
 					} else {
-						String resultRunData = runDataStr.trim().replaceAll("/", "-").substring(0,
-								10);
+						String resultRunData = runDataStr.trim().replaceAll("/", "-").substring(0, 10);
 						if (StringUtils.isEmpty(runDataStr)) {
 							result = resultRunData + " 14:10:03";
 						} else {
@@ -93,26 +90,34 @@ public class Defects {
 			sql = new StringBuilder(sql.substring(0, sql.toString().length() - 1) + "),");
 		}
 		String resultSql = sql.toString().substring(0, sql.toString().length() - 1) + ";";
-		
+
 		// log.detailLog(resultSql.substring(0, 300));
+		Connection connection = MySqlUtil.getConnection();
 		try {
-			long currentTimeMillis = System.currentTimeMillis();
-			Connection connection = MySqlUtil.getConnection();
-			Statement statement = connection.createStatement();
-			connection.setAutoCommit(false);
-			int num = statement.executeUpdate(resultSql);
-			connection.commit();
-			statement.close();
-			task.log("defects值插入" + num + "条成功!");
-			Log.log.writeLog(0, "defects值插入" + num + "条成功!");
-			System.out.println("defects耗时:"+(System.currentTimeMillis() - currentTimeMillis));
+			synchronized (connection) {
+				if (connection.isClosed()) {
+					return;
+				}
+				Statement statement = connection.createStatement();
+				connection.setAutoCommit(false);
+				int num = statement.executeUpdate(resultSql);
+				connection.commit();
+				statement.close();
+				task.log("defects值插入" + num + "条成功!");
+				Log.log.writeLog(0, "defects值插入" + num + "条成功!");
+			}
 		} catch (SQLException e) {
-			Log.log.writeLog(-1, ExceptionUtil.getExceptionInfo(e));
+			MySqlUtil.rollback(connection);
+			Log.log.writeLog(-1, "数据插入异常，已回滚\n" + ExceptionUtil.getExceptionInfo(e));
+		} catch (Exception e) {
+			MySqlUtil.rollback(connection);
+			System.out.println("连接为空或者已关闭!" + e.getMessage());
 		}
 	}
+
 	public static void save0(List<List<String>> metaNames, List<List<String>> data, MyTask task) {
 		task.log("defects表数据总量:" + data.size());
-		StringBuilder sql = new StringBuilder("insert into alarm (");
+		StringBuilder sql = new StringBuilder("insert into alarm_copy1 (");
 		for (int i = 0; i < fields.length; i++) {
 			if (fields[i].equals("")) {
 				continue;
@@ -154,8 +159,7 @@ public class Defects {
 						if (StringUtils.isEmpty(runDataStr)) {
 							result = "2019-11-27 14:10:03";
 						} else {
-							String resultRunData = runDataStr.trim().replaceAll("/", "-")
-									.substring(0, 10);
+							String resultRunData = runDataStr.trim().replaceAll("/", "-").substring(0, 10);
 							if (StringUtils.isEmpty(runDataStr)) {
 								result = resultRunData + " 14:10:03";
 							} else {
@@ -181,9 +185,12 @@ public class Defects {
 			connection.commit();
 			pst.close();
 			System.out.println(System.currentTimeMillis() - currentTimeMillis);
-		} catch (SQLException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+		} catch (SQLException e) {
+			MySqlUtil.rollback(connection);
+			Log.log.writeLog(-1, "数据插入异常，已回滚\n" + ExceptionUtil.getExceptionInfo(e));
+		} catch (Exception e) {
+			MySqlUtil.rollback(connection);
+			System.out.println("连接为空或者已关闭!" + e.getMessage());
 		}
 	}
 }

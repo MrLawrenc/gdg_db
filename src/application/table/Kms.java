@@ -1,11 +1,13 @@
 package application.table;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 
 import application.db.MySqlUtil;
 import application.utils.ExceptionUtil;
+import application.utils.Log;
 import application.utils.MyTask;
 
 public class Kms {
@@ -28,6 +30,7 @@ public class Kms {
 
 	public static void save(List<List<String>> metaNames, List<List<String>> data, MyTask task) {
 		task.log("kms表数据总量:" + data.size());
+		Log.log.writeLog(0, "kms数据总量:" + data.size());
 		StringBuilder sql = new StringBuilder("insert into rpt_gw_kmscore (");
 		for (int i = 0; i < fields.length; i++) {
 			sql.append(fields[i]).append(",");
@@ -44,12 +47,27 @@ public class Kms {
 		}
 		String resultSql = sql.toString().substring(0, sql.toString().length() - 1) + ";";
 		// log.detailLog("sql:" + resultSql.substring(0, 200));
+		Connection connection = MySqlUtil.getConnection();
 		try {
-			Statement statement = MySqlUtil.getConnection().createStatement();
-			long num=statement.executeUpdate(resultSql);
-			task.log("kms值插入"+num+"条成功!");
+			synchronized (connection) {
+				if (connection.isClosed()) {
+					return;
+				}
+				Statement statement = connection.createStatement();
+				connection.setAutoCommit(false);
+				int num = statement.executeUpdate(resultSql);
+				connection.commit();
+				statement.close();
+				task.log("kms值插入" + num + "条成功!");
+				Log.log.writeLog(0, "kms值插入" + num + "条成功!");
+			}
 		} catch (SQLException e) {
-			task.log("0" + ExceptionUtil.getExceptionInfo(e));
+			MySqlUtil.rollback(connection);
+			Log.log.writeLog(-1, "数据插入异常，已回滚\n" + ExceptionUtil.getExceptionInfo(e));
+		} catch (Exception e) {
+			MySqlUtil.rollback(connection);
+			e.printStackTrace();
+			System.out.println("连接为空或者已关闭!" + e.getMessage());
 		}
 	}
 }

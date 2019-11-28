@@ -1,13 +1,15 @@
 package application.utils;
 
 import java.io.File;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Set;
 
 import application.controller.MyController;
 import application.db.MySqlUtil;
 
 public class Util {
-	public static String[] tables = new String[]{"tvalue", "tqi", "kms", "defects", "curves"};
+	public static String[] tables = new String[] { "tvalue", "tqi", "kms", "defects", "curves" };
 
 	/**
 	 * 根据文件名获取其他信息 <br>
@@ -34,15 +36,18 @@ public class Util {
 			powerSection = split[1] + "工务段";
 		} catch (Exception e) {
 			log.writeLog(-1, "异常:" + dbFullName + ExceptionUtil.appendExceptionInfo(e));
-			return new String[]{"文件名异常", "文件名异常", "文件名异常"};
+			return new String[] { "文件名异常", "文件名异常", "文件名异常" };
 		}
-		return new String[]{lineName, direction, powerSection};
+		return new String[] { lineName, direction, powerSection };
 	}
 
 	public static void exit() {
 		Log.log.writeLog(0, "退出，关闭资源.......................");
-		Log.log.close();
+
 		MySqlUtil.closeConnection();
+		Log.log.close();
+
+		RecoredInfo.recored.close();
 		System.exit(0);
 	}
 
@@ -56,8 +61,7 @@ public class Util {
 		}
 		for (File currentFile : files) {
 			if (currentFile.isDirectory()) {
-				if ((currentFile.getName().contains("上行")
-						|| currentFile.getName().contains("下行"))) {
+				if ((currentFile.getName().contains("上行") || currentFile.getName().contains("下行"))) {
 					result.add(currentFile.getParentFile());
 					return;
 				} else {
@@ -68,4 +72,25 @@ public class Util {
 		}
 	}
 
+	/**
+	 * 精度保证
+	 * 
+	 * @param v
+	 * @param scale
+	 * @return
+	 */
+	public static double round(double v, int scale) {
+		if (scale < 0) {
+			throw new IllegalArgumentException("The scale must be a positive integer or zero");
+		}
+		String s = String.valueOf(v);
+		// true:小数需要补位 否则是截取 规则四舍五入
+		if (s.split("\\.")[1].length() < scale) {
+			String formatStr = String.format("%." + scale + "f", v);
+			v = Double.parseDouble(formatStr);
+		}
+		BigDecimal b = BigDecimal.valueOf(v);
+		BigDecimal one = new BigDecimal("1");
+		return b.divide(one, scale, RoundingMode.HALF_UP).doubleValue();
+	}
 }

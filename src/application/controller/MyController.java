@@ -1,6 +1,10 @@
 package application.controller;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -19,6 +23,7 @@ import application.table.TqiUtil;
 import application.utils.ExceptionUtil;
 import application.utils.Log;
 import application.utils.MyTask;
+import application.utils.RecoredInfo;
 import application.utils.Util;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
@@ -114,20 +119,20 @@ public class MyController<E> implements Initializable {
 		sourceDbType.setDisable(true);
 		targetDbType.getSelectionModel().select("Mysql");
 		targetDbType.setDisable(true);
-		// parentFilePath.setText("E:\\\\工电供资料\\\\document\\\\6.客户资料\\\\工务\\\\工务检测数据\\\\2019年第三季度综合检测车联检");
-		parentFilePath.setText("F:\\gtdq\\资料");
+		parentFilePath.setText("E:\\\\工电供资料\\\\document\\\\6.客户资料\\\\工务\\\\工务检测数据\\\\2019年第三季度综合检测车联检");
+//		parentFilePath.setText("F:\\gtdq\\资料");
 
+//		mysqlUrl.setText(
+//				"jdbc:mysql://localhost:3306/study?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC");
 		mysqlUrl.setText(
-				"jdbc:mysql://localhost:3306/study?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC");
-		// mysqlUrl.setText(
-		// "jdbc:mysql://47.96.158.220:3306/study?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC");
-		// mysqlUrl.setText(
-		// "jdbc:mysql://192.168.3.52:3306/idcty?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC");
+				"jdbc:mysql://47.96.158.220:3306/study?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC");
+//		mysqlUrl.setText(
+//				"jdbc:mysql://192.168.3.52:3306/idcty?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC");
 		mysqlUsername.setText("root");
-		mysqlPwd.setText("admin");
-		// mysqlPwd.setText("@123lmyLMY.");
-		// mysqlUsername.setText("idcty");
-		// mysqlPwd.setText("123456Aa");
+//		mysqlPwd.setText("admin");
+		mysqlPwd.setText("@123lmyLMY.");
+//		mysqlUsername.setText("idcty");
+//		mysqlPwd.setText("123456Aa");
 	}
 
 	/*
@@ -138,35 +143,68 @@ public class MyController<E> implements Initializable {
 	 * 按照定死的规则，向mysql批量插入所有的access数据
 	 */
 	public void batchAdd() {
-		Log.log.writeLog(0, "url:" + mysqlUrl.getText() + "  username:" + mysqlUsername + "  pwd:"
-				+ mysqlPwd.getText());
+//		try {
+//			initFileInfo();
+//		} catch (IOException e1) {
+//			// TODO Auto-generated catch block
+//			e1.printStackTrace();
+//		}
+//		if (cache != null) {
+//			mysqlUrl.setText(cache.url);
+//			mysqlUsername.setText(cache.username);
+//			mysqlPwd.setText(cache.password);
+//		}
+
+		String url = mysqlUrl.getText();
+		String username = mysqlUsername.getText();
+		String password = mysqlPwd.getText();
+		if (url.trim().equals("") || username.trim().equals("") || password.trim().equals("")) {
+			dialog.setContentText("MySql数据库连接信息设置不正确!");
+			dialog.show();
+			return;
+		}
+		RecoredInfo.recored.recoredConnInfo(url, username, password);
+
 		log.clear();
 
 		String path = parentFilePath.getText();
-		if (path.trim() == null) {
+		System.out.println("path:" + path);
+		if (path.trim().equals("")) {
 			Log.log.writeLog(-1, "access数据库文件夹设置不正确!");
+			dialog.setContentText("文件夹不能为空!");
 			dialog.show();
 			return;
 		}
 
-		new Thread(() -> MySqlUtil.initConn(mysqlUrl.getText(), mysqlUsername.getText(),
-				mysqlPwd.getText())).start();
-
-		MyTask task = new MyTask(path);
+		Thread initConn = new Thread(
+				() -> MySqlUtil.initConn(mysqlUrl.getText(), mysqlUsername.getText(), mysqlPwd.getText()));
+		initConn.start();
+		progressBar.setProgress(0.1);
+		File parentFile;
+		try {
+			parentFile = new File(path);
+			if (!parentFile.exists()) {
+				dialog.setContentText("创建文件夹" + path + "失败!");
+				dialog.show();
+			}
+		} catch (Exception e) {
+			dialog.setContentText("创建文件夹" + path + "失败!");
+			dialog.show();
+			return;
+		}
+		MyTask task = new MyTask(parentFile);
 		// 监听task的updateMessage方法,实现日志更新
 		task.messageProperty().addListener(new ChangeListener<String>() {
 			@Override
-			public void changed(ObservableValue<? extends String> observable, String oldValue,
-					String newValue) {
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				log.appendText(LocalDateTime.now() + " " + newValue + "\n");
 			}
 		});
 		// 监听进度，实现进度条更新
 		task.progressProperty().addListener(new ChangeListener<Number>() {
 			@Override
-			public void changed(ObservableValue<? extends Number> observable, Number oldValue,
-					Number newValue) {
-				System.out.println("进度条值:"+newValue.doubleValue());
+			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+				System.out.println("进度条值:" + newValue.doubleValue());
 				progressBar.setProgress(newValue.doubleValue());
 
 			}
@@ -175,14 +213,52 @@ public class MyController<E> implements Initializable {
 		// 获取监听task的call方法返回值
 		task.valueProperty().addListener(new ChangeListener<String>() {
 			@Override
-			public void changed(ObservableValue<? extends String> observable, String oldValue,
-					String newValue) {
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				// logUtil.infoLog("全部执行完毕");
 				System.out.println(Thread.currentThread().getName() + " call() 返回值：" + newValue);
+				log.appendText(LocalDateTime.now() + " 数据处理完毕!\n");
 				Log.log.writeLog(0, "数据处理完毕!");
 			}
 		});
 		new Thread(task, "gtdq-gdt-task").start();
 	}
 
+	private Cache cache = new Cache();
+
+	public boolean initFileInfo() throws IOException {
+		File file = new File(RecoredInfo.recored.recoredFileName);
+		if (!file.exists()) {
+			return false;
+		}
+		FileInputStream fis = new FileInputStream(file);
+		InputStreamReader isr = new InputStreamReader(fis, "UTF-8");
+		BufferedReader br = new BufferedReader(isr);
+		String line = "";
+
+		while ((line = br.readLine()) != null) {
+
+			// 添加换行符
+//            tempStream.append(System.getProperty("line.separator"))
+			if (line.contains(RecoredInfo.recored.mysqlInfo)) {
+				String[] mysqlInfo = line.split(RecoredInfo.recored.mysqlInfo)[1].split(" ");
+				cache.url = mysqlInfo[0];
+				cache.username = mysqlInfo[1];
+				cache.password = mysqlInfo[2];
+			}
+			if (line.contains(RecoredInfo.recored.filePth)) {
+
+			}
+		}
+		br.close();
+		isr.close();
+		fis.close();
+		return true;
+	}
+
+	private static class Cache {
+		private String url;
+		private String username;
+		private String password;
+		private List<String> doneFilePathList;
+	}
 }

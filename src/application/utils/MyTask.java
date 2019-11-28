@@ -5,10 +5,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 import application.db.AccessUtil;
 import application.table.Defects;
+import application.table.Kms;
+import application.table.TValueUtil;
+import application.table.TqiUtil;
 import javafx.concurrent.Task;
 
 /**
@@ -20,13 +22,13 @@ public class MyTask extends Task<String> {
 	/**
 	 * 数据入库模式选择，默认单个数据库入一次库
 	 */
-	private boolean useBatch = true;
+	private boolean useBatch = false;
 
-	public MyTask(String parentPath) {
-		this.parentPath = parentPath;
+	public MyTask(File parentFile) {
+		this.parentFile = parentFile;
 	}
 
-	private String parentPath;
+	private File parentFile;
 	/**
 	 * 每张表的表头和所有行记录的 key前缀
 	 */
@@ -46,14 +48,18 @@ public class MyTask extends Task<String> {
 	 */
 	@Override
 	protected void updateMessage(String message) {
-		CompletableFuture.runAsync(() -> {
-			super.updateMessage(message);
-			try {
-				Thread.sleep(5);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}, Log.BLOCK_QUEUE_EXECUTOR);
+		try {
+			ThreadUtil.BLOCK_QUEUE_EXECUTOR.execute(() -> {
+				super.updateMessage(message);
+				try {
+					Thread.sleep(5);
+				} catch (Exception e) {
+
+				}
+			});
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+		}
 	}
 
 	/**
@@ -61,23 +67,20 @@ public class MyTask extends Task<String> {
 	 */
 	@Override
 	protected String call() throws Exception {
-		List<File> allDbFiles = AccessUtil.accordRequireFiles(new File(parentPath));
+		List<File> allDbFiles = AccessUtil.accordRequireFiles(parentFile);
+		Log.log.writeLog(0, "db数量：" + allDbFiles.size());
 		updateProgress(2, 100);
 		if (useBatch) {
 			batchDbAdd(allDbFiles);
 		} else {
 			double size = allDbFiles.size();
-			int temp = 2;
-			double everyNum = 98.000 / size;
+			double temp = Util.round(2, 5);
+			double everyNum = Util.round(98.00000 / Util.round(size, 5), 5);
 			for (File file : allDbFiles) {
-				try {
-					Thread.sleep(1000);
-					temp += everyNum;
-					updateProgress(temp, 100);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+				singleDbAdd(temp, everyNum, file);
+				temp += everyNum;
+				System.out.println(temp);
+				updateProgress(temp, 100);
 			}
 		}
 		updateProgress(100, 100);
@@ -100,7 +103,7 @@ public class MyTask extends Task<String> {
 					updateMessage("处理 " + (i * limit) + " 到 " + (i + 1) * limit);
 					batchAdd0(allDbFiles.subList(i * limit, (i + 1) * limit));
 				}
-				if (num*limit!=dbNum) {
+				if (num * limit != dbNum) {
 					updateMessage("处理 " + (num * limit) + " 到 " + dbNum);
 					batchAdd0(allDbFiles.subList(num * limit, dbNum));
 				}
@@ -114,12 +117,13 @@ public class MyTask extends Task<String> {
 	}
 
 	/**
-	 * 单个access数据库处理，主要是方便得知进度条，否则应使用批量插入，节约时间
+	 * @param start 进度条开始位置
+	 * @param step  进度条在该方法内能使用的数量
+	 * @description 单个access数据库处理，主要是方便得知进度条，否则应使用批量插入，节约时间
 	 */
-	public void singleDbAdd(File dbFile) {
+	public void singleDbAdd(double start, double step, File dbFile) {
 		try {
-			Map<String, List<List<String>>> allDataMap = new HashMap<String, List<List<String>>>(
-					1000);
+			Map<String, List<List<String>>> allDataMap = new HashMap<String, List<List<String>>>(1000);
 			// ArrayList<File> allFiles = AccessUtil.accordRequireFiles(tempParentFile);
 			Log.log.writeLog(1, "正在获取数据库文件" + dbFile.getName() + "的所有数据");
 			String dbPath = dbFile.getAbsolutePath();
@@ -128,8 +132,7 @@ public class MyTask extends Task<String> {
 				// logUtil.infoLog("tableName:" + tableName);
 				String tableNameKey = tableNamePre + tableName;
 				String tableDataKey = tableDataPre + tableName;
-				List<List<String>> tableData = AccessUtil.getTableDataByTableName(dbPath,
-						tableName);
+				List<List<String>> tableData = AccessUtil.getTableDataByTableName(dbPath, tableName);
 				List<List<String>> metaList = new ArrayList<List<String>>(1);
 				metaList.add(tableData.get(0));
 				if (allDataMap.get(tableNameKey) == null) {
@@ -137,6 +140,7 @@ public class MyTask extends Task<String> {
 				}
 				// 删除表头信息
 				tableData.remove(0);
+				System.out.println(tableName + "  表数据  " + tableData.size());
 				if (allDataMap.get(tableDataKey) == null) {
 					allDataMap.put(tableDataKey, tableData);
 				} else {
@@ -149,7 +153,7 @@ public class MyTask extends Task<String> {
 			addOtherInfo4Single(dbFile, allDataMap);
 
 			dealAllData(allDataMap);
-
+			RecoredInfo.recored.recoredFileInfo(true, dbFile.getAbsolutePath());
 		} catch (Exception e) {
 			Log.log.writeLog(-1, "0异常，程序即将关闭" + ExceptionUtil.appendExceptionInfo(e));
 		}
@@ -163,8 +167,7 @@ public class MyTask extends Task<String> {
 	 */
 	public void batchAdd0(List<File> allFiles) {
 		try {
-			Map<String, List<List<String>>> allDataMap = new HashMap<String, List<List<String>>>(
-					1000);
+			Map<String, List<List<String>>> allDataMap = new HashMap<String, List<List<String>>>(1000);
 			// ArrayList<File> allFiles = AccessUtil.accordRequireFiles(tempParentFile);
 			for (File dbFile : allFiles) {
 				Log.log.writeLog(1, "正在获取数据库文件" + dbFile.getName() + "的所有数据");
@@ -175,8 +178,7 @@ public class MyTask extends Task<String> {
 					// logUtil.infoLog("tableName:" + tableName);
 					String tableNameKey = tableNamePre + tableName;
 					String tableDataKey = tableDataPre + tableName;
-					List<List<String>> tableData = AccessUtil.getTableDataByTableName(dbPath,
-							tableName);
+					List<List<String>> tableData = AccessUtil.getTableDataByTableName(dbPath, tableName);
 					List<List<String>> metaList = new ArrayList<List<String>>(1);
 					metaList.add(tableData.get(0));
 					if (allDataMap.get(tableNameKey) == null) {
@@ -208,8 +210,7 @@ public class MyTask extends Task<String> {
 	 */
 	private void executeSqlUpdate() {
 		Log.log.writeLog(0, "开始执行sql更新脚本!");
-		
-		
+
 		Log.log.writeLog(0, "执行sql更新脚本成功!");
 	}
 
@@ -233,6 +234,7 @@ public class MyTask extends Task<String> {
 
 	private void addOtherInfo4Single(File file, Map<String, List<List<String>>> allDataMap) {
 		String[] info = Util.getInfo(file.getName());
+		// System.out.println(file.getName()+" "+info[0]+" "+info[1]+" "+info[2]);
 		List<List<String>> tvalue = allDataMap.get(tableDataPre + Util.tables[0]);
 		add0(tvalue, info);
 		List<List<String>> tqi = allDataMap.get(tableDataPre + Util.tables[1]);
@@ -261,17 +263,16 @@ public class MyTask extends Task<String> {
 	public void dealAllData(Map<String, List<List<String>>> allData) throws InterruptedException {
 
 		// logUtil.infoLog(mysqlUrl.getText());
-		// TValueUtil.save(allData.get(tableNamePre + Util.tables[0]), allData.get(tableDataPre + Util.tables[0]), this);
-		// allData.remove(tableDataPre + Util.tables[0]);
-		//
-		// TqiUtil.save0(allData.get(tableNamePre + Util.tables[1]), allData.get(tableDataPre + Util.tables[1]), this);
-		// allData.remove(tableDataPre + Util.tables[1]);
-		//
-		// Kms.save(allData.get(tableNamePre + Util.tables[2]), allData.get(tableDataPre + Util.tables[2]), this);
-		// allData.remove(tableDataPre + Util.tables[2]);
+		TValueUtil.save(allData.get(tableNamePre + Util.tables[0]), allData.get(tableDataPre + Util.tables[0]), this);
+		allData.remove(tableDataPre + Util.tables[0]);
+
+		TqiUtil.save(allData.get(tableNamePre + Util.tables[1]), allData.get(tableDataPre + Util.tables[1]), this);
+		allData.remove(tableDataPre + Util.tables[1]);
+
+		Kms.save(allData.get(tableNamePre + Util.tables[2]), allData.get(tableDataPre + Util.tables[2]), this);
+		allData.remove(tableDataPre + Util.tables[2]);
 		// alarm表
-		Defects.save(allData.get(tableNamePre + Util.tables[3]),
-				allData.get(tableDataPre + Util.tables[3]), this);
+		Defects.save(allData.get(tableNamePre + Util.tables[3]), allData.get(tableDataPre + Util.tables[3]), this);
 		allData.remove(tableDataPre + Util.tables[3]);
 
 	}

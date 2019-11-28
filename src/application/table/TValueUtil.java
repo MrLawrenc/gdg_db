@@ -1,11 +1,13 @@
 package application.table;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 
 import application.db.MySqlUtil;
 import application.utils.ExceptionUtil;
+import application.utils.Log;
 import application.utils.MyTask;
 
 /**
@@ -17,6 +19,7 @@ public class TValueUtil {
 
 	public static void save(List<List<String>> metaNames, List<List<String>> data, MyTask task) {
 		task.log("tvalue数据量:" + data.size());
+		Log.log.writeLog(0, "tvalue数据量:" + data.size());
 		StringBuilder sql = new StringBuilder("insert into rpt_gw_tvalue (");
 		// for (String name : metaNames.get(0)) {
 		// log(name);
@@ -52,16 +55,30 @@ public class TValueUtil {
 
 		String resultSql = sql.toString().substring(0, sql.toString().length() - 1) + ";";
 		// log.detailLog("sql:" + resultSql.substring(200));
+		Connection connection = MySqlUtil.getConnection();
 		try {
-//			 PreparedStatement prepareStatement = MySqlUtil.getConnection(url).prepareStatement("");
-//			 prepareStatement.addBatch("");
-//			 prepareStatement.execute("");
+			synchronized (connection) {
+				if (connection.isClosed()) {
+					Log.log.writeLog(1, "tvalue:连接关闭");
+					return;
+				}
+				Statement statement = connection.createStatement();
+				connection.setAutoCommit(false);
+				int num = statement.executeUpdate(resultSql);
+				connection.commit();
+				statement.close();
+				task.log("tvalue值插入" + num + "条成功!");
+				Log.log.writeLog(0, "tvalue值插入" + num + "条成功!");
 
-			Statement statement = MySqlUtil.getConnection().createStatement();
-			statement.execute(resultSql);
-			task.log("tvalue值插入"+0+"条成功!");
+			}
 		} catch (SQLException e) {
-			task.log("0" + ExceptionUtil.getExceptionInfo(e));
+			MySqlUtil.rollback(connection);
+			e.printStackTrace();
+			Log.log.writeLog(-1, "数据插入异常，已回滚\n" + ExceptionUtil.getExceptionInfo(e));
+		} catch (Exception e) {
+			MySqlUtil.rollback(connection);
+			e.printStackTrace();
+			System.out.println("连接为空或者已关闭!" + e.getMessage());
 		}
 	}
 }

@@ -1,9 +1,7 @@
 package application;
 
 import java.io.File;
-import java.util.concurrent.TimeUnit;
 
-import application.utils.Log;
 import application.utils.Util;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -37,7 +35,10 @@ public class Main extends Application {
 			primaryStage.setScene(scene);
 
 			primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/i.png")));
-			
+			//禁用最大化和手动调节大小
+			primaryStage.setResizable(false);
+			primaryStage.setMaximized(false);
+			//primaryStage.initStyle(StageStyle.TRANSPARENT);
 			primaryStage.setOnCloseRequest(event -> {
 				primaryStage.close();
 				event.consume();
