@@ -3,9 +3,11 @@ package application.utils;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import application.controller.MyController.Cache;
 import application.db.AccessUtil;
 import application.table.Defects;
 import application.table.Kms;
@@ -24,8 +26,11 @@ public class MyTask extends Task<String> {
 	 */
 	private boolean useBatch = false;
 
-	public MyTask(File parentFile) {
+	private Cache cache;
+
+	public MyTask(File parentFile, Cache cache) {
 		this.parentFile = parentFile;
+		this.cache = cache;
 	}
 
 	private File parentFile;
@@ -50,9 +55,10 @@ public class MyTask extends Task<String> {
 	protected void updateMessage(String message) {
 		try {
 			ThreadUtil.BLOCK_QUEUE_EXECUTOR.execute(() -> {
+				// System.out.println("updateMessage:"+message);
 				super.updateMessage(message);
 				try {
-					Thread.sleep(5);
+					Thread.sleep(2);
 				} catch (Exception e) {
 
 				}
@@ -68,23 +74,36 @@ public class MyTask extends Task<String> {
 	@Override
 	protected String call() throws Exception {
 		List<File> allDbFiles = AccessUtil.accordRequireFiles(parentFile);
+		if (allDbFiles.size() == 0) {
+			return "0该文件夹下没数据！";
+		}
+		delDoneFile(allDbFiles);
+		if (allDbFiles.size() == 0) {
+			return "1文件夹下数据都已入过库！";
+		}
+
 		Log.log.writeLog(0, "db数量：" + allDbFiles.size());
-		updateProgress(2, 100);
+		updateProgress(3, 100);
 		if (useBatch) {
 			batchDbAdd(allDbFiles);
 		} else {
 			double size = allDbFiles.size();
-			double temp = Util.round(2, 5);
-			double everyNum = Util.round(98.00000 / Util.round(size, 5), 5);
+			double temp = Util.round(3, 5);
+			double everyNum = Util.round(97.00000 / Util.round(size, 5), 5);
 			for (File file : allDbFiles) {
+
 				singleDbAdd(temp, everyNum, file);
 				temp += everyNum;
-				System.out.println(temp);
 				updateProgress(temp, 100);
 			}
+			System.out.println("总共插入数据:tqi->" + TqiUtil.sum + "  tvalue->" + TValueUtil.sum + "  defects->"
+					+ Defects.sum + "  kms->" + Kms.sum);
 		}
 		updateProgress(100, 100);
-		return "hello";
+		//执行更新操作
+		executeSqlUpdate();
+		return "总共插入数据:tqi->" + TqiUtil.sum + "  tvalue->" + TValueUtil.sum + "  defects->" + Defects.sum + "  kms->"
+				+ Kms.sum + "\n";
 	}
 
 	/**
@@ -152,8 +171,7 @@ public class MyTask extends Task<String> {
 
 			addOtherInfo4Single(dbFile, allDataMap);
 
-			dealAllData(allDataMap);
-			RecoredInfo.recored.recoredFileInfo(true, dbFile.getAbsolutePath());
+			dealAllData(dbFile.getAbsolutePath(), allDataMap);
 		} catch (Exception e) {
 			Log.log.writeLog(-1, "0异常，程序即将关闭" + ExceptionUtil.appendExceptionInfo(e));
 		}
@@ -197,7 +215,7 @@ public class MyTask extends Task<String> {
 			}
 			addOtherInfo(allFiles, allDataMap);
 
-			dealAllData(allDataMap);
+			// dealAllData(allDataMap);
 
 		} catch (Exception e) {
 			Log.log.writeLog(-1, "异常，程序即将关闭" + ExceptionUtil.appendExceptionInfo(e));
@@ -260,20 +278,63 @@ public class MyTask extends Task<String> {
 	 * @param allData
 	 * @throws InterruptedException
 	 */
-	public void dealAllData(Map<String, List<List<String>>> allData) throws InterruptedException {
+	public void dealAllData(String dbPath, Map<String, List<List<String>>> allData) throws InterruptedException {
+		// 脏数据清理 TODO
+//		List<String> tableStrings = new ArrayList<String>();
+//		for (String unFinishFileInfo : cache.unFinishFilePathList) {
+//			String[] split = unFinishFileInfo.split(" ");
+//			if (split[0].equals(dbPath)) {
+//				tableStrings.add(split[1]);
+//			}
+//		}
 
 		// logUtil.infoLog(mysqlUrl.getText());
-		TValueUtil.save(allData.get(tableNamePre + Util.tables[0]), allData.get(tableDataPre + Util.tables[0]), this);
+		RecoredInfo.recored.recoredFileInfo(false, dbPath + " tvalue");
+		boolean tvalueSuccess = TValueUtil.save(allData.get(tableNamePre + Util.tables[0]),
+				allData.get(tableDataPre + Util.tables[0]), this);
+		if (tvalueSuccess) {
+			RecoredInfo.recored.recoredFileInfo(true, dbPath + " tvalue");
+		}
 		allData.remove(tableDataPre + Util.tables[0]);
 
-		TqiUtil.save(allData.get(tableNamePre + Util.tables[1]), allData.get(tableDataPre + Util.tables[1]), this);
+		RecoredInfo.recored.recoredFileInfo(false, dbPath + " tqi");
+		boolean tqiSuccess = TqiUtil.save(allData.get(tableNamePre + Util.tables[1]),
+				allData.get(tableDataPre + Util.tables[1]), this);
+		if (tqiSuccess) {
+			RecoredInfo.recored.recoredFileInfo(true, dbPath + " tqi");
+		}
 		allData.remove(tableDataPre + Util.tables[1]);
 
-		Kms.save(allData.get(tableNamePre + Util.tables[2]), allData.get(tableDataPre + Util.tables[2]), this);
+		RecoredInfo.recored.recoredFileInfo(false, dbPath + " kms");
+		boolean kmsSuccess = Kms.save(allData.get(tableNamePre + Util.tables[2]),
+				allData.get(tableDataPre + Util.tables[2]), this);
 		allData.remove(tableDataPre + Util.tables[2]);
+		if (kmsSuccess) {
+			RecoredInfo.recored.recoredFileInfo(true, dbPath + " kms");
+		}
 		// alarm表
-		Defects.save(allData.get(tableNamePre + Util.tables[3]), allData.get(tableDataPre + Util.tables[3]), this);
+		RecoredInfo.recored.recoredFileInfo(false, dbPath + " defects");
+		boolean DefectsSuccess = Defects.save(allData.get(tableNamePre + Util.tables[3]),
+				allData.get(tableDataPre + Util.tables[3]), this);
+		if (DefectsSuccess) {
+			RecoredInfo.recored.recoredFileInfo(true, dbPath + " defects");
+		}
 		allData.remove(tableDataPre + Util.tables[3]);
 
+	}
+
+	/**
+	 * 剔除本次扫描到文件夹（删除之前入过库的重复db文件）
+	 */
+	private void delDoneFile(List<File> resultFile) {
+		for (String finishPath : cache.doneFilePathList) {
+			Iterator<File> it = resultFile.iterator();
+			while (it.hasNext()) {
+				File value = it.next();
+				if (finishPath.contains(value.getAbsolutePath())) {
+					it.remove();
+				}
+			}
+		}
 	}
 }

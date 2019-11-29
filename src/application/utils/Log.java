@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 public class Log {
 	private String suffix = "\n";
@@ -40,6 +41,7 @@ public class Log {
 				}
 				try {
 					outStream.write(result + suffix);
+					outStream.flush();
 				} catch (IOException e) {
 					System.out.println("输出流已关闭，以下信息不做记录:" + result);
 				}
@@ -60,6 +62,11 @@ public class Log {
 			return outStream;
 		}
 		File logFile = new File("log.gtdq");
+		// 大于300m就拷贝文件,并清空源文件
+		if (Util.getMegaNum(logFile.length()) > 300) {
+			Util.copyFileUsingFileChannels(logFile, new File(System.currentTimeMillis() + "_copyLog.gtdq"));
+			logFile.delete();
+		}
 		try {
 			if (!logFile.exists()) {
 				boolean hasFile = logFile.createNewFile();
@@ -92,6 +99,7 @@ public class Log {
 
 			System.out.println("关闭log文件流!");
 			if (outStream != null) {
+				outStream.flush();
 				outStream.close();
 			}
 			if (fos != null) {

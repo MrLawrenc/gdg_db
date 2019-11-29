@@ -50,12 +50,17 @@ public class MySqlUtil {
 	private volatile static int flag = 0;
 
 	public synchronized static Connection getConnection() {
+		long start=System.currentTimeMillis();
 		// 等待异步的mysql连接全部初始化完毕
 		while (!done.get()) {
+			//10s拿不到就退出
+			if (System.currentTimeMillis()-start>10000) {
+				return null;
+			}
 			try {
 				System.out.println("mysql连接还未就绪，等待连接....................");
 				Log.log.writeLog(1, "mysql连接还未就绪，等待连接....................");
-				TimeUnit.MILLISECONDS.sleep(500);
+				TimeUnit.SECONDS.sleep(1);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -77,7 +82,9 @@ public class MySqlUtil {
 			connMap.values().forEach(conn -> {
 				synchronized (conn) {
 					try {
-						conn.close();
+						if (!conn.isClosed()) {
+							conn.close();
+						}
 					} catch (SQLException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -92,7 +99,7 @@ public class MySqlUtil {
 	private static int connNum = 10;
 	private static AtomicBoolean done = new AtomicBoolean(false);
 
-	public static void initConn(String url, String username, String pwd) {
+	public static void initConn(String url, String username, String pwd) throws Exception {
 		try {
 			for (int i = 0; i < connNum; i++) {
 				Connection connection = DriverManager.getConnection(url, username, pwd);
@@ -101,7 +108,7 @@ public class MySqlUtil {
 			done.compareAndSet(false, true);
 		} catch (Exception e) {
 			System.err.println("get mysql connection failure");
-			e.printStackTrace();
+			throw e;
 		}
 	}
 
@@ -112,7 +119,6 @@ public class MySqlUtil {
 	 */
 	public static void rollback(Connection connection) {
 		synchronized (connection) {
-
 			try {
 				if (connection.isClosed()) {
 					return;

@@ -17,7 +17,9 @@ import application.utils.MyTask;
  */
 public class TValueUtil {
 
-	public static void save(List<List<String>> metaNames, List<List<String>> data, MyTask task) {
+	public static long sum = 0;
+
+	public static boolean save(List<List<String>> metaNames, List<List<String>> data, MyTask task) {
 		task.log("tvalue数据量:" + data.size());
 		Log.log.writeLog(0, "tvalue数据量:" + data.size());
 		StringBuilder sql = new StringBuilder("insert into rpt_gw_tvalue (");
@@ -60,7 +62,7 @@ public class TValueUtil {
 			synchronized (connection) {
 				if (connection.isClosed()) {
 					Log.log.writeLog(1, "tvalue:连接关闭");
-					return;
+					return false;
 				}
 				Statement statement = connection.createStatement();
 				connection.setAutoCommit(false);
@@ -69,7 +71,8 @@ public class TValueUtil {
 				statement.close();
 				task.log("tvalue值插入" + num + "条成功!");
 				Log.log.writeLog(0, "tvalue值插入" + num + "条成功!");
-
+				sum += num;
+				return true;
 			}
 		} catch (SQLException e) {
 			MySqlUtil.rollback(connection);
@@ -80,5 +83,6 @@ public class TValueUtil {
 			e.printStackTrace();
 			System.out.println("连接为空或者已关闭!" + e.getMessage());
 		}
+		return false;
 	}
 }

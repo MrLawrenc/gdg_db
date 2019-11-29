@@ -59,8 +59,9 @@
                 <TextArea fx:id="log" layoutX="21.0" layoutY="269.0" prefHeight="215.0" prefWidth="527.0" text="jdbc:mysql://localhost:3306/study?useUnicode=true&amp;characterEncoding=utf-8&amp;useSSL=true&amp;serverTimezone=UTC&#10;&#10;root&#10;admin&#10;&#10;F:\\gtdq\\gtdq_gdg\\lib&#10;&#10;E:\\工电供资料\\document\\6.客户资料\\工务\\工务检测数据\\2019年第三季度综合检测车联检" wrapText="true" />
                 <Text layoutX="28.0" layoutY="254.0" strokeType="OUTSIDE" strokeWidth="0.0" text="日志" />
                 <Button id="dbBtn" fx:id="batch" layoutX="483.0" layoutY="200.0" mnemonicParsing="false" onAction="#batchAdd" text="execute" />
-                <ProgressBar fx:id="progressBar" layoutX="156.0" layoutY="200.0" prefHeight="21.0" prefWidth="298.0" progress="-1.0" />
+                <ProgressBar fx:id="progressBar" cache="true" cacheHint="DEFAULT" depthTest="INHERIT" layoutX="156.0" layoutY="200.0" opacity="1.0" prefHeight="21.0" prefWidth="298.0" progress="-1.0" />
                 <Text layoutX="77.0" layoutY="212.0" strokeType="OUTSIDE" strokeWidth="0.0" text="进度条" />
+                <Button id="dbBtn" layoutX="476.0" layoutY="64.0" mnemonicParsing="false" onAction="#selectFile" text="选择文件夹" />
               </children>
             </AnchorPane>
           </content>

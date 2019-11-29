@@ -1,11 +1,15 @@
 package application.utils;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.channels.FileChannel;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
-import application.controller.MyController;
 import application.db.MySqlUtil;
 
 public class Util {
@@ -19,11 +23,11 @@ public class Util {
 	public static String[] getInfo(String dbFullName) {
 		Log log = Log.log;
 		// 线路
-		String lineName;
+		String lineName = "";
 		// 行别
-		String direction;
+		String direction = "";
 		// 工务段
-		String powerSection;
+		String powerSection = "";
 		try {
 			String[] split = dbFullName.split("_");
 			if (split[0].contains("行")) {
@@ -33,7 +37,7 @@ public class Util {
 				lineName = split[0];
 				direction = "0";
 			}
-			powerSection = split[1] + "工务段";
+			powerSection = split[1].trim() + "工务段";
 		} catch (Exception e) {
 			log.writeLog(-1, "异常:" + dbFullName + ExceptionUtil.appendExceptionInfo(e));
 			return new String[] { "文件名异常", "文件名异常", "文件名异常" };
@@ -41,9 +45,36 @@ public class Util {
 		return new String[] { lineName, direction, powerSection };
 	}
 
+	/**
+	 * 根据文件夹切分信息，存如rpt_gw_sumary表
+	 * 
+	 * @param fileName 文件夹名字
+	 * @return
+	 */
+	public static String[] getAbstractInfo(String fileName) {
+		String[] split = fileName.split("_");
+		if (split.length != 4) {
+			Log.log.writeLog(-1, "文件名" + fileName + "不符合规范!");
+			return new String[] { "", "", "", "" };
+		}
+		// 年份
+		String year = split[0];
+		// 季度
+		String quarter = split[1];
+		// 检测设备名字
+		String detactDevName = split[2];
+		// 检测方式
+		String detectWay = split[3];
+		return new String[] { year, quarter, detactDevName, detectWay };
+	}
+
 	public static void exit() {
 		Log.log.writeLog(0, "退出，关闭资源.......................");
-
+		try {
+			TimeUnit.SECONDS.sleep(5);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		MySqlUtil.closeConnection();
 		Log.log.close();
 
@@ -92,5 +123,41 @@ public class Util {
 		BigDecimal b = BigDecimal.valueOf(v);
 		BigDecimal one = new BigDecimal("1");
 		return b.divide(one, scale, RoundingMode.HALF_UP).doubleValue();
+	}
+
+	/**
+	 * 根据文件长度计算文件大小，单位m
+	 * 
+	 * @param fileLength
+	 * @return
+	 */
+	public static long getMegaNum(long fileLength) {
+		return fileLength / 1024 / 1024;
+	}
+
+	/**
+	 * NIO文件拷贝
+	 * 
+	 * @param source 源
+	 * @param dest   目标
+	 * @throws IOException
+	 */
+	public static void copyFileUsingFileChannels(File source, File dest) {
+		FileChannel inputChannel = null;
+		FileChannel outputChannel = null;
+		try {
+			inputChannel = new FileInputStream(source).getChannel();
+			outputChannel = new FileOutputStream(dest).getChannel();
+			outputChannel.transferFrom(inputChannel, 0, inputChannel.size());
+		} catch (Exception e) {
+			// TODO: handle exception
+		} finally {
+			try {
+				inputChannel.close();
+				outputChannel.close();
+			} catch (Exception e) {
+				// TODO: handle exception
+			}
+		}
 	}
 }

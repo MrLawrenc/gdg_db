@@ -2,6 +2,7 @@ package application;
 
 import java.io.File;
 
+import application.controller.MyController;
 import application.utils.Util;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -27,6 +28,8 @@ public class Main extends Application {
 			System.out.println(getClass().getResource("/Mars.fxml"));
 			FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/Mars.fxml"));
 			Parent root = fxmlLoader.load();
+			MyController controller = fxmlLoader.getController();
+			controller.setStage(primaryStage);
 
 			scene = new Scene(root);
 			// Scene scene = new Scene(root, 600, 500);
@@ -35,10 +38,10 @@ public class Main extends Application {
 			primaryStage.setScene(scene);
 
 			primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/i.png")));
-			//禁用最大化和手动调节大小
+			// 禁用最大化和手动调节大小
 			primaryStage.setResizable(false);
 			primaryStage.setMaximized(false);
-			//primaryStage.initStyle(StageStyle.TRANSPARENT);
+			// primaryStage.initStyle(StageStyle.TRANSPARENT);
 			primaryStage.setOnCloseRequest(event -> {
 				primaryStage.close();
 				event.consume();

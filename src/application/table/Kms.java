@@ -12,6 +12,7 @@ import application.utils.MyTask;
 
 public class Kms {
 
+	public static long sum=0;
 	/**
 	 * 数据库字段
 	 */
@@ -28,7 +29,7 @@ public class Kms {
 			"r_rcorrugation_3", "r_rcorrugation_2", "r_rcorrugation_1", "line_name", "direction",
 			"power_section_name" };
 
-	public static void save(List<List<String>> metaNames, List<List<String>> data, MyTask task) {
+	public static boolean save(List<List<String>> metaNames, List<List<String>> data, MyTask task) {
 		task.log("kms表数据总量:" + data.size());
 		Log.log.writeLog(0, "kms数据总量:" + data.size());
 		StringBuilder sql = new StringBuilder("insert into rpt_gw_kmscore (");
@@ -51,7 +52,7 @@ public class Kms {
 		try {
 			synchronized (connection) {
 				if (connection.isClosed()) {
-					return;
+					return false; 
 				}
 				Statement statement = connection.createStatement();
 				connection.setAutoCommit(false);
@@ -60,6 +61,8 @@ public class Kms {
 				statement.close();
 				task.log("kms值插入" + num + "条成功!");
 				Log.log.writeLog(0, "kms值插入" + num + "条成功!");
+				sum += num;
+				return true;
 			}
 		} catch (SQLException e) {
 			MySqlUtil.rollback(connection);
@@ -69,5 +72,6 @@ public class Kms {
 			e.printStackTrace();
 			System.out.println("连接为空或者已关闭!" + e.getMessage());
 		}
+		return false;
 	}
 }
