@@ -100,6 +100,7 @@ public class MySqlUtil {
 		try {
 			for (int i = 0; i < connNum; i++) {
 				Connection connection = DriverManager.getConnection(url, username, pwd);
+				connection.setAutoCommit(false);
 				connMap.put(i, connection);
 			}
 			done.compareAndSet(false, true);
