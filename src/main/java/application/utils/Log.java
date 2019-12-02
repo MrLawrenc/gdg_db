@@ -25,8 +25,7 @@ public class Log {
 
     /**
      * @param type 0-->info 1 -->detail -1-->error
-     * @param info 日志信息
-     * @Description 记录详细日志到文件
+     * @description 记录详细日志到文件
      * @author Liu Mingyao
      */
     public void writeLog(int type, String logStr) {
@@ -58,7 +57,7 @@ public class Log {
      * @return OutputStreamWriter obj
      * @author Liu Mingyao
      */
-    public OutputStreamWriter getOutputStream() {
+    private OutputStreamWriter getOutputStream() {
         if (outStream != null) {
             return outStream;
         }

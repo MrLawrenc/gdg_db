@@ -60,7 +60,7 @@ public class RecoredInfo {
         try {
             if (outStream != null) {
                 if (done) {
-                    updateFile2State1(fileFullPath);
+                    updateFile2State1(false, fileFullPath);
                     return;
                 }
                 synchronized (outStream) {
@@ -92,7 +92,7 @@ public class RecoredInfo {
      *
      * @param fileFullPath 文件全路径
      */
-    private void updateFile2State1(String fileFullPath) {
+    private void updateFile2State1(boolean isDelete, String fileFullPath) {
         File file = getRecoredFile();
         try (RandomAccessFile accessFile = new RandomAccessFile(file, "rw")) {
             String line = null;
@@ -104,14 +104,22 @@ public class RecoredInfo {
                 String resultLine = new String(line.getBytes("ISO-8859-1"), "UTF-8").trim();
                 if (resultLine.contains(oldInfo)) {
                     accessFile.seek(seek);
-                    Log.log.writeLog(0, "更新文件状态为已入库:" + fileFullPath);
-                    accessFile.write(newInfo.getBytes());
+                    //判断是改变状态还是删除记录
+                    if (isDelete) {
+                        Log.log.writeLog(0, "文件已回滚，删除记录:" + fileFullPath);
+                        for (byte aByte : newInfo.getBytes()) {
+
+                        }
+                        //accessFile.write();
+                    } else {
+                        Log.log.writeLog(0, "更新文件状态为已入库:" + fileFullPath);
+                        accessFile.write(newInfo.getBytes());
+                    }
                     break;
                 }
                 seek += (resultLine + "\n").getBytes().length;
             }
         } catch (Exception e) {
-            // TODO: handle exception
         }
     }
 
@@ -159,15 +167,13 @@ public class RecoredInfo {
                 }
             }
         } catch (Exception e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
     }
 
     /**
-     * @param fileLine
-     * @return
+     *
      */
     public Map<String, String> getFileInfo(String fileLine) {
         Map<String, String> fileMap = new HashMap<String, String>();
@@ -176,8 +182,6 @@ public class RecoredInfo {
 
     /**
      * 按行读文件方法 fileName 如 recoredTemp.gtdq
-     *
-     * @throws IOException
      */
     public void readFile(String fileName, String filePath) throws IOException {
         File file = new File(fileName);
@@ -262,7 +266,9 @@ public class RecoredInfo {
         return null;
     }
 
-    // 关闭流
+    /**
+     * 关闭流
+     */
     public void close() {
         try {
             synchronized (outStream) {

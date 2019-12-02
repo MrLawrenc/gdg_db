@@ -7,17 +7,20 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import application.db.MySqlUtil;
 
 /**
- * @author  : LiuMing
+ * @author : LiuMing
  * @date : 2019/12/2 9:47
  * @description :   TODO
  */
 public class Util {
+    public static List<String> exceptionName = new ArrayList<>();
     public static String[] tables = new String[]{"tvalue", "tqi", "kms", "defects", "curves"};
 
     /**
@@ -25,7 +28,8 @@ public class Util {
      * 吕临线_太原南_(35.950-3.848) <br>
      * 京包线上行_大同_(371-236.5)
      */
-    public static String[] getInfo(String dbFullName) {
+    public static String[] getInfo(File file) {
+        String dbFullName = file.getName();
         Log log = Log.log;
         // 线路
         String lineName = "";
@@ -45,6 +49,7 @@ public class Util {
             powerSection = split[1].trim() + "工务段";
         } catch (Exception e) {
             log.writeLog(-1, "异常:" + dbFullName + ExceptionUtil.appendExceptionInfo(e));
+            exceptionName.add(file.getAbsolutePath());
             return new String[]{"文件名异常", "文件名异常", "文件名异常"};
         }
         return new String[]{lineName, direction, powerSection};
