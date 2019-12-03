@@ -7,7 +7,7 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.text.*?>
 
-<AnchorPane prefHeight="529.0" prefWidth="562.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="application.controller.MyController">
+<AnchorPane prefHeight="420.0" prefWidth="562.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="application.controller.MyController">
   <!-- TODO Add Nodes -->
   <children>
     <BorderPane layoutX="181.0" layoutY="165.0" prefHeight="200.0" prefWidth="200.0" />
@@ -22,51 +22,17 @@
         <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
       </rowConstraints>
     </GridPane>
-    <TabPane id="bg" layoutX="0.0" layoutY="0.0" prefHeight="529.0" prefWidth="562.0" style="" tabClosingPolicy="UNAVAILABLE">
-      <tabs>
-        <Tab id="oneTab" fx:id="oneTab" style="" text="连接设置">
-          <content>
-            <AnchorPane id="Content" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" style="">
-              <children>
-                <TextField fx:id="parentFilePath" layoutX="156.0" layoutY="63.0" prefWidth="298.0" />
-                <Text layoutX="300.0" layoutY="29.0" strokeType="OUTSIDE" strokeWidth="0.0" text="源数据类型选择" />
-                <Text layoutX="14.0" layoutY="79.0" strokeType="OUTSIDE" strokeWidth="0.0" text="数据库文件所在目录" />
-                <Text layoutX="8.0" layoutY="31.0" strokeType="OUTSIDE" strokeWidth="0.0" text="目标数据库类型选择" />
-                <ComboBox id="sourceDb" fx:id="sourceDbType" layoutX="397.0" layoutY="14.0" prefHeight="21.0" prefWidth="139.0" promptText="source">
-                  <items>
-                    <FXCollections fx:factory="observableArrayList">
-                      <String fx:value="Access" />
-                      <String fx:value="MySQL" />
-                      <String fx:value="Oracle" />
-                    </FXCollections>
-                  </items>
-                </ComboBox>
-                <ComboBox id="targetDb" fx:id="targetDbType" layoutX="122.0" layoutY="14.0" prefHeight="21.0" prefWidth="139.0" promptText="target">
-                  <items>
-                    <FXCollections fx:factory="observableArrayList">
-                      <String fx:value="MySql" />
-                      <String fx:value="Access" />
-                      <String fx:value="Oracle" />
-                    </FXCollections>
-                  </items>
-                </ComboBox>
-                <Text layoutX="19.0" layoutY="118.0" strokeType="OUTSIDE" strokeWidth="0.0" text="mysql数据库url" />
-                <TextField id="parentFilePath" fx:id="mysqlUrl" layoutX="156.0" layoutY="102.0" prefWidth="298.0" promptText="jdbc:mysql://localhost:3306/study?useUnicode=true&amp;characterEncoding=utf-8&amp;useSSL=true&amp;serverTimezone=UTC" />
-                <Text layoutX="19.0" layoutY="147.0" strokeType="OUTSIDE" strokeWidth="0.0" text="mysql数据库user" />
-                <Text layoutX="21.0" layoutY="175.0" strokeType="OUTSIDE" strokeWidth="0.0" text="mysql数据库pwd" />
-                <TextField id="parentFilePath" fx:id="mysqlUsername" layoutX="156.0" layoutY="131.0" prefWidth="298.0" promptText="username" />
-                <TextField id="parentFilePath" fx:id="mysqlPwd" layoutX="156.0" layoutY="159.0" prefWidth="298.0" promptText="password" />
-                <TextArea fx:id="log" layoutX="21.0" layoutY="269.0" prefHeight="215.0" prefWidth="527.0" text="jdbc:mysql://localhost:3306/study?useUnicode=true&amp;characterEncoding=utf-8&amp;useSSL=true&amp;serverTimezone=UTC&#10;&#10;root&#10;admin&#10;&#10;F:\\gtdq\\gtdq_gdg\\lib&#10;&#10;E:\\工电供资料\\document\\6.客户资料\\工务\\工务检测数据\\2019年第三季度综合检测车联检" wrapText="true" />
-                <Text layoutX="28.0" layoutY="254.0" strokeType="OUTSIDE" strokeWidth="0.0" text="日志" />
-                <Button id="dbBtn" fx:id="batch" layoutX="483.0" layoutY="200.0" mnemonicParsing="false" onAction="#batchAdd" text="execute" />
-                <ProgressBar fx:id="progressBar" cache="true" cacheHint="DEFAULT" depthTest="INHERIT" layoutX="156.0" layoutY="200.0" opacity="1.0" prefHeight="21.0" prefWidth="298.0" progress="-1.0" />
-                <Text layoutX="77.0" layoutY="212.0" strokeType="OUTSIDE" strokeWidth="0.0" text="进度条" />
-                <Button id="dbBtn" layoutX="476.0" layoutY="64.0" mnemonicParsing="false" onAction="#selectFile" text="选择文件夹" />
-              </children>
-            </AnchorPane>
-          </content>
-        </Tab>
-      </tabs>
-    </TabPane>
+    <AnchorPane id="Content" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" style="">
+      <children>
+        <TextField fx:id="parentFilePath" layoutX="148.0" layoutY="29.0" prefWidth="298.0" />
+        <Text layoutX="14.0" layoutY="45.0" strokeType="OUTSIDE" strokeWidth="0.0" text="数据库文件所在目录" />
+        <TextArea fx:id="log" layoutX="14.0" layoutY="153.0" prefHeight="256.0" prefWidth="534.0" text="jdbc:mysql://localhost:3306/study?useUnicode=true&amp;characterEncoding=utf-8&amp;useSSL=true&amp;serverTimezone=UTC&#10;&#10;root&#10;admin&#10;&#10;F:\\gtdq\\gtdq_gdg\\lib&#10;&#10;E:\\工电供资料\\document\\6.客户资料\\工务\\工务检测数据\\2019年第三季度综合检测车联检" wrapText="true" />
+        <Text layoutX="16.0" layoutY="141.0" strokeType="OUTSIDE" strokeWidth="0.0" text="日志" />
+        <Button id="dbBtn" fx:id="batch" layoutX="468.0" layoutY="80.0" mnemonicParsing="false" onAction="#batchAdd" prefWidth="80.0" text="执行导入" />
+        <ProgressBar fx:id="progressBar" cache="true" cacheHint="DEFAULT" depthTest="INHERIT" layoutX="148.0" layoutY="80.0" opacity="1.0" prefHeight="21.0" prefWidth="298.0" progress="-1.0" />
+        <Text layoutX="40.0" layoutY="95.0" strokeType="OUTSIDE" strokeWidth="0.0" text="进度条" />
+        <Button id="dbBtn" layoutX="468.0" layoutY="29.0" mnemonicParsing="false" onAction="#selectFile" text="选择文件夹" />
+      </children>
+    </AnchorPane>
   </children>
 </AnchorPane>

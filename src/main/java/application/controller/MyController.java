@@ -1,10 +1,8 @@
 package application.controller;
 
 import application.db.MySqlUtil;
-import application.utils.Log;
-import application.utils.MyTask;
-import application.utils.RecordedInfo;
-import application.utils.Util;
+import application.utils.*;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Task;
@@ -21,7 +19,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @SuppressWarnings("all")
@@ -30,12 +27,6 @@ public class MyController implements Initializable {
     private Tab oneTab;
     @FXML
     private TextField parentFilePath;
-    @FXML
-    private TextField mysqlUrl;
-    @FXML
-    private TextField mysqlUsername;
-    @FXML
-    private TextField mysqlPwd;
     @FXML
     private ComboBox<String> sourceDbType;
     @FXML
@@ -61,6 +52,8 @@ public class MyController implements Initializable {
     @FXML
     private Button dbBtn;
     @FXML
+    private Button batch;
+    @FXML
     private ListView<String> sourceFields;
     @FXML
     private ListView<String> targetFields;
@@ -74,6 +67,9 @@ public class MyController implements Initializable {
      * 弹窗控件
      */
     private Dialog<ButtonType> dialog;
+    private String url;
+    private String username;
+    private String password;
     /**
      * 是否是正在运行状态
      */
@@ -93,42 +89,27 @@ public class MyController implements Initializable {
                 System.out.println("关闭提示框");
             }
         });
-        /**
-         * fixme 固定死数据库类型选择
-         */
-        sourceDbType.getSelectionModel().select("Access");
-        sourceDbType.setDisable(true);
-        targetDbType.getSelectionModel().select("Mysql");
-        targetDbType.setDisable(true);
         parentFilePath.setText("E:\\\\工电供资料\\\\document\\\\6.客户资料\\\\工务\\\\工务检测数据\\\\2019年第三季度综合检测车联检");
         parentFilePath.setDisable(true);
-        // parentFilePath.setText("F:\\gtdq\\资料");
-
+        Platform.runLater(() -> {
+            ConnTask connTask = new ConnTask();
+            connTask.messageProperty().addListener((observableValue, oldValue, newValue) -> {
+                batch.setDisable(true);
+                dialog.setContentText(newValue);
+                dialog.show();
+            });
+            ThreadUtil.BLOCK_QUEUE_EXECUTOR.execute(connTask);
+        });
         // 初始化文件保存的信息
         try {
             initFileInfo();
         } catch (IOException e1) {
-            // TODO Auto-generated catch block
             e1.printStackTrace();
         }
-        if (cache.url != null) {
-            Log.log.writeLog(0, "获取到数据库连接信息缓存，直接使用！");
-            mysqlUrl.setText(cache.url);
-            mysqlUsername.setText(cache.username);
-            mysqlPwd.setText(cache.password);
-        }
-
-        // mysqlUrl.setText(
-        // "jdbc:mysql://localhost:3306/study?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC");
-        mysqlUrl.setText(
-                "jdbc:mysql://47.96.158.220:3306/study?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC");
-        // mysqlUrl.setText(
-        // "jdbc:mysql://192.168.3.52:3306/idcty?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC");
-        mysqlUsername.setText("root");
-        // mysqlPwd.setText("admin");
-        mysqlPwd.setText("@123lmyLMY.");
-        // mysqlUsername.setText("idcty");
-        // mysqlPwd.setText("123456Aa");
+//         mysqlUrl.setText(
+//         "jdbc:mysql://192.168.3.52:3306/idcty?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC");
+//         mysqlUsername.setText("idcty");
+//         mysqlPwd.setText("123456Aa");
 
     }
 
@@ -144,7 +125,7 @@ public class MyController implements Initializable {
 
 
     /**
-     * 选择上层文件夹
+     * 获取用户选择的文件夹
      */
     public void selectFile() {
         DirectoryChooser directoryChooser = new DirectoryChooser();
@@ -154,14 +135,14 @@ public class MyController implements Initializable {
             dialog.show();
             return;
         }
-        String path = file.getPath();// 选择的文件夹路径
-        if (path.split(":")[1].equals("/") || path.split(":")[1].equals("\\")) {
+        String path = file.getPath();
+        if ("/".equals(path.split(":")[1]) || "\\".equals(path.split(":")[1])) {
             dialog.setContentText("不能选择最上层目录，请重新选择!");
             dialog.show();
             return;
         }
         String[] abstractInfo = Util.getAbstractInfo(file.getName());
-        if (abstractInfo[0].equals("")) {
+        if ("".equals(abstractInfo[0])) {
             dialog.setContentText("文件名不符合规范，批次信息将无法导入!");
             dialog.show();
             return;
@@ -179,47 +160,18 @@ public class MyController implements Initializable {
             dialog.show();
             return;
         }
-
-        String url = mysqlUrl.getText();
-        String username = mysqlUsername.getText();
-        String password = mysqlPwd.getText();
-        if (url.trim().equals("") || username.trim().equals("") || password.trim().equals("")) {
-            dialog.setContentText("MySql数据库连接信息设置不正确!");
-            dialog.show();
-            return;
-        }
-        RecordedInfo.recored.recoredConnInfo(url, username, password);
+        //RecordedInfo.recored.recoredConnInfo(url, username, password);
         progressBar.setProgress(0.01);
         log.clear();
 
         String path = parentFilePath.getText();
-        if (path==null||path.trim().equals("")){
+        if (path == null || "".equals(path.trim())) {
             dialog.setContentText("请选择数据库文件所在的文件夹目录!");
             dialog.show();
             return;
         }
 
-        ConnTask connTask = new ConnTask(mysqlUrl.getText(), mysqlUsername.getText(), mysqlPwd.getText());
-        connTask.valueProperty().addListener(new ChangeListener<Boolean>() {
-            @Override
-            public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
-                if (!newValue) {
-                    dialog.setContentText("初始化mysql连接失败，程序即将自动退出！");
-                    dialog.show();
-                    new Thread(() -> {
-                        try {
-                            TimeUnit.SECONDS.sleep(5);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                        Util.exit();
-                    }).start();
 
-                }
-
-            }
-        });
-        new Thread(connTask, "连接池初始化线程").start();
         running.compareAndSet(false, true);
         progressBar.setProgress(0.01);
         MyTask task = new MyTask(new File(path), cache);
@@ -250,13 +202,12 @@ public class MyController implements Initializable {
             @Override
             public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
                 running.compareAndSet(true, false);
-                // logUtil.infoLog("全部执行完毕");
-                if (newValue.subSequence(0, 1).equals("0")) {
+                if ("0".equals(newValue.subSequence(0, 1))) {
                     log.appendText("\n" + newValue + LocalDateTime.now() + " 数据处理失败!");
                     dialog.setContentText(newValue.substring(1));
                     dialog.show();
                     return;
-                } else if (newValue.subSequence(0, 1).equals("1")) {
+                } else if ("1".equals(newValue.subSequence(0, 1))) {
                     dialog.setContentText(newValue.substring(1));
                     dialog.show();
                     return;
@@ -266,9 +217,9 @@ public class MyController implements Initializable {
                 if (Util.exceptionName.size() > 0) {
                     dialog.setContentText("部分数据入库线路、行别、工务段解析失败，详情查看日志！");
                     dialog.show();
+                    String exceptionInfo = Util.exceptionName.stream().reduce((v1, v2) -> v1 + v2 + "\n").get();
+                    log.appendText("线路、行别、工务段解析失败记录（使用默认值”文件名异常“保存）:\n" + exceptionInfo);
                 }
-                String exceptionInfo = Util.exceptionName.stream().reduce((v1, v2) -> v1 + v2 + "\n").get();
-                log.appendText("线路、行别、工务段解析失败记录（使用默认值”文件名异常“保存）:\n" + exceptionInfo);
             }
         });
         new Thread(task, "gtdq-gdt-task").start();
@@ -285,9 +236,6 @@ public class MyController implements Initializable {
 
     /**
      * 根据本地文件记录，获取连接信息、以入库的信息
-     *
-     * @return
-     * @throws IOException
      */
     public boolean initFileInfo() throws IOException {
         File file = new File(RecordedInfo.recored.recoredFileName);
@@ -328,13 +276,6 @@ public class MyController implements Initializable {
         return true;
     }
 
-    public boolean isValidFileName(String fileName) {
-        if (fileName == null || fileName.length() > 255) {
-            return false;
-        } else {
-            return fileName.matches("^[A-z]:\\\\\\\\(.+?\\\\\\\\)*$");
-        }
-    }
 
     public static class Cache {
         private String url;
@@ -348,25 +289,20 @@ public class MyController implements Initializable {
      * 异步连接池初始化
      */
     private static class ConnTask extends Task<Boolean> {
-        private String url;
-        private String username;
-        private String password;
 
         @Override
         protected Boolean call() throws Exception {
-            try {
-                MySqlUtil.initConn(url, username, password);
+            File file = new File("db.gtdq");
+            try (RandomAccessFile dbFile = new RandomAccessFile(file, "r")) {
+                String dbUrl = dbFile.readLine().split("url=")[1];
+                String dbUsername = dbFile.readLine().split("username=")[1];
+                String dbPassword = dbFile.readLine().split("password=")[1];
+                MySqlUtil.initConn(dbUrl.trim(), dbUsername.trim(), dbPassword.trim());
             } catch (Exception e) {
+                updateMessage("连接到mysql数据库失败,请退出程序重新配置!");
                 return false;
             }
             return true;
-        }
-
-        public ConnTask(String url, String username, String password) {
-            super();
-            this.url = url;
-            this.username = username;
-            this.password = password;
         }
 
     }

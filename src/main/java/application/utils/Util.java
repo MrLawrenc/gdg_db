@@ -10,6 +10,8 @@ import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import application.db.MySqlUtil;
@@ -60,7 +62,6 @@ public class Util {
      * 根据文件夹切分信息，存如rpt_gw_sumary表
      *
      * @param fileName 文件夹名字
-     * @return
      */
     public static String[] getAbstractInfo(String fileName) {
         String[] split = fileName.split("_");

@@ -169,6 +169,7 @@ public class MyTask extends Task<String> {
 
             dealAllData(dbFile.getAbsolutePath(), allDataMap);
         } catch (Exception e) {
+            e.printStackTrace();
             Log.log.writeLog(-1, "0异常，程序即将关闭" + ExceptionUtil.appendExceptionInfo(e));
         }
 
