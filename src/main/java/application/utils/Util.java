@@ -50,6 +50,7 @@ public class Util {
         } catch (Exception e) {
             log.writeLog(-1, "异常:" + dbFullName + ExceptionUtil.appendExceptionInfo(e));
             exceptionName.add(file.getAbsolutePath());
+            System.out.println("文件名解析失败，将使用默认值(文件名异常)保存!");
             return new String[]{"文件名异常", "文件名异常", "文件名异常"};
         }
         return new String[]{lineName, direction, powerSection};
@@ -78,10 +79,13 @@ public class Util {
         return new String[]{year, quarter, detectDevName, detectWay};
     }
 
+    /**
+     * 退出程序做的资源清理
+     */
     public static void exit() {
         System.out.println("准备关闭线程池.........");
+        Log.log.writeLog(0, "退出，即将关闭线程池、连接池、文件流等资源.......................");
         ThreadUtil.closePoolExecutor(5, TimeUnit.SECONDS);
-        Log.log.writeLog(0, "退出，关闭资源.......................");
         try {
             TimeUnit.SECONDS.sleep(5);
         } catch (Exception e) {
@@ -90,7 +94,7 @@ public class Util {
         MySqlUtil.closeConnection();
         Log.log.close();
 
-        RecoredInfo.recored.close();
+        RecordedInfo.recored.close();
         System.exit(0);
     }
 

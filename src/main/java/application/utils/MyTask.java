@@ -322,35 +322,35 @@ public class MyTask extends Task<String> {
      */
     private void dealAllData(String dbPath, Map<String, List<List<String>>> allData) throws InterruptedException {
 
-        RecoredInfo.recored.recoredFileInfo(false, dbPath + " tvalue");
+        RecordedInfo.recored.recoredFileInfo(false, dbPath + " tvalue");
         boolean tvalueSuccess = TValueUtil.save(allData.get(tableNamePre + Util.tables[0]),
                 allData.get(tableDataPre + Util.tables[0]), this);
         if (tvalueSuccess) {
-            RecoredInfo.recored.recoredFileInfo(true, dbPath + " tvalue");
+            RecordedInfo.recored.recoredFileInfo(true, dbPath + " tvalue");
         }
         allData.remove(tableDataPre + Util.tables[0]);
 
-        RecoredInfo.recored.recoredFileInfo(false, dbPath + " tqi");
+        RecordedInfo.recored.recoredFileInfo(false, dbPath + " tqi");
         boolean tqiSuccess = TqiUtil.save(allData.get(tableNamePre + Util.tables[1]),
                 allData.get(tableDataPre + Util.tables[1]), this);
         if (tqiSuccess) {
-            RecoredInfo.recored.recoredFileInfo(true, dbPath + " tqi");
+            RecordedInfo.recored.recoredFileInfo(true, dbPath + " tqi");
         }
         allData.remove(tableDataPre + Util.tables[1]);
 
-        RecoredInfo.recored.recoredFileInfo(false, dbPath + " kms");
+        RecordedInfo.recored.recoredFileInfo(false, dbPath + " kms");
         boolean kmsSuccess = Kms.save(allData.get(tableNamePre + Util.tables[2]),
                 allData.get(tableDataPre + Util.tables[2]), this);
         allData.remove(tableDataPre + Util.tables[2]);
         if (kmsSuccess) {
-            RecoredInfo.recored.recoredFileInfo(true, dbPath + " kms");
+            RecordedInfo.recored.recoredFileInfo(true, dbPath + " kms");
         }
         // alarm表
-        RecoredInfo.recored.recoredFileInfo(false, dbPath + " defects");
+        RecordedInfo.recored.recoredFileInfo(false, dbPath + " defects");
         boolean defectsSuccess = Defects.save(allData.get(tableNamePre + Util.tables[3]),
                 allData.get(tableDataPre + Util.tables[3]), this);
         if (defectsSuccess) {
-            RecoredInfo.recored.recoredFileInfo(true, dbPath + " defects");
+            RecordedInfo.recored.recoredFileInfo(true, dbPath + " defects");
         }
         allData.remove(tableDataPre + Util.tables[3]);
 

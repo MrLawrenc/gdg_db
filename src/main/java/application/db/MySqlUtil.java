@@ -6,12 +6,14 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @SuppressWarnings("all")
 public class MySqlUtil {
 
+    //old driver
     // private static final String DRIVER = "com.mysql.jdbc.Driver";
     private static final String DRIVER = "com.mysql.cj.jdbc.Driver";
 
@@ -21,7 +23,7 @@ public class MySqlUtil {
     static {
         try {
             Class.forName(DRIVER);
-            connMap = new HashMap<Integer, Connection>();
+            connMap = new ConcurrentHashMap<>();
         } catch (ClassNotFoundException e) {
             System.err.println("can not load jdbc driver");
             e.printStackTrace();
@@ -54,18 +56,15 @@ public class MySqlUtil {
         // 等待异步的mysql连接全部初始化完毕
         while (!done.get()) {
             //10s拿不到就退出
-            if (System.currentTimeMillis() - start > 10000) {
-                return null;
-            }
             try {
-                System.out.println("mysql连接还未就绪，等待连接....................");
-                Log.log.writeLog(1, "mysql连接还未就绪，等待连接....................");
+                System.out.println("mysql连接还未就绪，等待连接...................." + connMap.size());
+                Log.log.writeLog(1, "mysql连接还未就绪，等待连接...................." + connMap.size());
                 TimeUnit.SECONDS.sleep(1);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
-        if (flag == 9) {
+        if (flag == connNum - 1) {
             flag = 0;
             return connMap.get(0);
         }
@@ -94,7 +93,10 @@ public class MySqlUtil {
         connMap.clear();
     }
 
-    private static int connNum = 10;
+    /**
+     * 连接池数量
+     */
+    private static int connNum = 6;
     /**
      * 所有连接是否初始化完毕
      */
@@ -111,6 +113,7 @@ public class MySqlUtil {
                 connMap.put(i, connection);
             }
             done.compareAndSet(false, true);
+            System.out.println("mysql连接初始化完毕................");
         } catch (Exception e) {
             System.err.println("get mysql connection failure");
             throw e;

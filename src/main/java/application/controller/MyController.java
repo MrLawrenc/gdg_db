@@ -3,7 +3,7 @@ package application.controller;
 import application.db.MySqlUtil;
 import application.utils.Log;
 import application.utils.MyTask;
-import application.utils.RecoredInfo;
+import application.utils.RecordedInfo;
 import application.utils.Util;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -188,24 +188,28 @@ public class MyController implements Initializable {
             dialog.show();
             return;
         }
-        RecoredInfo.recored.recoredConnInfo(url, username, password);
+        RecordedInfo.recored.recoredConnInfo(url, username, password);
         progressBar.setProgress(0.01);
         log.clear();
 
         String path = parentFilePath.getText();
+        if (path==null||path.trim().equals("")){
+            dialog.setContentText("请选择数据库文件所在的文件夹目录!");
+            dialog.show();
+            return;
+        }
 
         ConnTask connTask = new ConnTask(mysqlUrl.getText(), mysqlUsername.getText(), mysqlPwd.getText());
         connTask.valueProperty().addListener(new ChangeListener<Boolean>() {
             @Override
             public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
                 if (!newValue) {
-                    dialog.setContentText("初始化mysql连接失败，即将退出！");
+                    dialog.setContentText("初始化mysql连接失败，程序即将自动退出！");
                     dialog.show();
                     new Thread(() -> {
                         try {
                             TimeUnit.SECONDS.sleep(5);
                         } catch (InterruptedException e) {
-                            // TODO Auto-generated catch block
                             e.printStackTrace();
                         }
                         Util.exit();
@@ -264,7 +268,7 @@ public class MyController implements Initializable {
                     dialog.show();
                 }
                 String exceptionInfo = Util.exceptionName.stream().reduce((v1, v2) -> v1 + v2 + "\n").get();
-                log.appendText("线路、行别、工务段解析失败记录:\n" + exceptionInfo);
+                log.appendText("线路、行别、工务段解析失败记录（使用默认值”文件名异常“保存）:\n" + exceptionInfo);
             }
         });
         new Thread(task, "gtdq-gdt-task").start();
@@ -286,7 +290,7 @@ public class MyController implements Initializable {
      * @throws IOException
      */
     public boolean initFileInfo() throws IOException {
-        File file = new File(RecoredInfo.recored.recoredFileName);
+        File file = new File(RecordedInfo.recored.recoredFileName);
         if (!file.exists()) {
             return false;
         }
@@ -299,19 +303,19 @@ public class MyController implements Initializable {
         while ((line = br.readLine()) != null) {
             // 添加换行符
             // tempStream.append(System.getProperty("line.separator"))
-            if (line.contains(RecoredInfo.mysqlInfo)) {
-                String[] mysqlInfo = line.split(RecoredInfo.mysqlInfo)[1].split(" ");
+            if (line.contains(RecordedInfo.mysqlInfo)) {
+                String[] mysqlInfo = line.split(RecordedInfo.mysqlInfo)[1].split(" ");
                 cache.url = mysqlInfo[0];
                 cache.username = mysqlInfo[1];
                 cache.password = mysqlInfo[2];
             }
-            if (line.contains(RecoredInfo.filePathPre)) {
-                String fileInfo = line.split(RecoredInfo.filePathPre)[1];
-                if (line.contains(RecoredInfo.fileState0)) {
-                    String dbAndTable = fileInfo.split(RecoredInfo.fileState0)[0];
+            if (line.contains(RecordedInfo.filePathPre)) {
+                String fileInfo = line.split(RecordedInfo.filePathPre)[1];
+                if (line.contains(RecordedInfo.fileState0)) {
+                    String dbAndTable = fileInfo.split(RecordedInfo.fileState0)[0];
                     unFinishList.add(dbAndTable);
                 } else {
-                    String dbAndTable = fileInfo.split(RecoredInfo.fileState1)[0];
+                    String dbAndTable = fileInfo.split(RecordedInfo.fileState1)[0];
                     finishList.add(dbAndTable);
                 }
             }

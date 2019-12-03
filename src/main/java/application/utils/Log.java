@@ -26,36 +26,31 @@ public class Log {
     /**
      * @param type 0-->info 1 -->detail -1-->error
      * @description 记录详细日志到文件
-     * @author Liu Mingyao
      */
     public void writeLog(int type, String logStr) {
-        try {
-            ThreadUtil.BLOCK_QUEUE_EXECUTOR.execute(() -> {
-                String result = LocalDateTime.now().toString();
-                if (type == 0) {
-                    result += "  info  " + logStr;
-                } else if (type > 0) {
-                    result += "  detail   " + logStr;
-                } else {
-                    result += "  error  " + logStr;
-                }
-                try {
-                    outStream.write(result + suffix);
-                    outStream.flush();
-                } catch (IOException e) {
-                    System.out.println("输出流已关闭，以下信息不做记录:" + result);
-                }
-            });
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
+        synchronized (outStream) {
+            if (outStream == null) {
+                return;
+            }
+            String result = LocalDateTime.now().toString();
+            if (type == 0) {
+                result += "  info  " + logStr;
+            } else if (type > 0) {
+                result += "  detail   " + logStr;
+            } else {
+                result += "  error  " + logStr;
+            }
+            try {
+                outStream.write(result + suffix);
+                outStream.flush();
+            } catch (IOException e) {
+                System.out.println("日志写入异常:" + e.getMessage());
+            }
         }
     }
 
     /**
      * 获取记录日志的文件流对象
-     *
-     * @return OutputStreamWriter obj
-     * @author Liu Mingyao
      */
     private OutputStreamWriter getOutputStream() {
         if (outStream != null) {
@@ -92,13 +87,15 @@ public class Log {
      */
     public void close() {
         try {
-            System.out.println("关闭log文件流!");
-            if (outStream != null) {
-                outStream.flush();
-                outStream.close();
-            }
-            if (fos != null) {
-                fos.close();
+            synchronized (outStream) {
+                System.out.println("关闭log文件流!");
+                if (outStream != null) {
+                    outStream.flush();
+                    outStream.close();
+                }
+                if (fos != null) {
+                    fos.close();
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();

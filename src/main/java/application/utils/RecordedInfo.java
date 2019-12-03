@@ -10,7 +10,6 @@ import java.io.OutputStreamWriter;
 import java.io.RandomAccessFile;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * 保存程序初始化信息-->url、username、password; 防止意外中断，会保存程序运行过程中信息，以便在下次启动继续更新数据入库;
@@ -18,10 +17,10 @@ import java.util.UUID;
  *
  * @author mrliu
  */
-public class RecoredInfo {
+public class RecordedInfo {
     private OutputStreamWriter outStream = null;
     private FileOutputStream fos = null;
-    public static RecoredInfo recored;
+    public static RecordedInfo recored;
     /**
      * 记录信息的文件
      */
@@ -29,10 +28,9 @@ public class RecoredInfo {
     /**
      * 完成的临时文件
      */
-    // private String recoredTemp = "recored_temp.gtdq";
+    // private String recordedTemp = "recored_temp.gtdq";
 
     public static String filePathPre = "&file:&";
-    //
     public static String fileState0 = "->0";
     public static String fileState1 = "->1";
     public static String mysqlInfo = "&mysql:&";
@@ -41,10 +39,10 @@ public class RecoredInfo {
     public static String other = "&mysql&";
 
     static {
-        recored = new RecoredInfo();
+        recored = new RecordedInfo();
     }
 
-    private RecoredInfo() {
+    private RecordedInfo() {
         super();
         getOutputStream();
     }
@@ -56,7 +54,7 @@ public class RecoredInfo {
      * @param done         是否保存完毕
      * @param fileFullPath 文件全路径
      */
-    public void recoredFileInfo(boolean done, String fileFullPath) {
+    public synchronized void recoredFileInfo(boolean done, String fileFullPath) {
         try {
             if (outStream != null) {
                 if (done) {
@@ -92,7 +90,7 @@ public class RecoredInfo {
      *
      * @param fileFullPath 文件全路径
      */
-    private void updateFile2State1(boolean isDelete, String fileFullPath) {
+    private  void updateFile2State1(boolean isDelete, String fileFullPath) {
         File file = getRecoredFile();
         try (RandomAccessFile accessFile = new RandomAccessFile(file, "rw")) {
             String line = null;
@@ -211,11 +209,11 @@ public class RecoredInfo {
 
     @SuppressWarnings("resource")
     public static void main(String[] args) throws Exception {
-        new RecoredInfo().recoredFileInfo(false, "E:\\工电供资料\\document\\6.客户资料");
-        new RecoredInfo().recoredConnInfo(
+        new RecordedInfo().recoredFileInfo(false, "E:\\工电供资料\\document\\6.客户资料");
+        new RecordedInfo().recoredConnInfo(
                 "jdbc:mysql://47.96.sss158.221:3306/study?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTisssssssssmezone=UTC",
                 "user1s", "admin1s");
-        new RecoredInfo().recoredFileInfo(true, "E:\\工电供资料\\document\\6.客户资料");
+        new RecordedInfo().recoredFileInfo(true, "E:\\工电供资料\\document\\6.客户资料");
 
         // RandomAccessFile raf = new RandomAccessFile(new File("log.gtdq"), "rw");
         // System.out.println(raf.length());
@@ -231,7 +229,7 @@ public class RecoredInfo {
         // System.out.println(new String(raf.readLine().getBytes("ISO-8859-1"),
         // "UTF-8"));
         // System.out.println("s||||".split("s")[1]);
-        // RecoredInfo recoredInfo = new RecoredInfo();
+        // RecordedInfo recoredInfo = new RecordedInfo();
         // recoredInfo.readFile("recored.gtdq",
         // "E:\\工电供资料\\document\\6.客户资料\\工务\\工务检测数据\\2019年第三季度综合检测车联检\\京原线\\京原线_原平_(410-237)\\京原线_原平_(410-237).iic");
     }
