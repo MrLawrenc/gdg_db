@@ -55,7 +55,7 @@ public class Util {
             System.out.println("文件名解析失败，将使用默认值(文件名异常)保存!");
             return new String[]{"文件名异常", "文件名异常", "文件名异常"};
         }
-        return new String[]{lineName, direction, powerSection};
+        return new String[]{lineName.trim(), direction.trim(), powerSection.trim()};
     }
 
     /**
@@ -176,5 +176,34 @@ public class Util {
                 // TODO: handle exception
             }
         }
+    }
+
+    /**
+     * 根据date和time转换为dataTime类型
+     *
+     * @param date RunDate 2019/8/30 00:00:00.0000000
+     * @param time RunTime 20:23:04
+     * @return
+     */
+    public static String getDataTime(String date, String time) {
+        if (date == null) {
+            return "2019-11-27 14:10:03";
+        } else {
+            String resultRunData = date.replaceAll("/", "-").substring(0, 10);
+            if (time == null) {
+                return resultRunData + " 00:00:00";
+            } else {
+                return resultRunData + " " + time;
+            }
+        }
+    }
+
+    /**
+     * 拼接基础的局信息
+     */
+    public static StringBuilder addBaseInfo(StringBuilder sql) {
+        sql.append("\"太原铁路局\",");
+        sql.append("\"TYJ$J04\",");
+        return sql;
     }
 }

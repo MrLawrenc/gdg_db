@@ -4,6 +4,7 @@ import application.db.MySqlUtil;
 import application.utils.ExceptionUtil;
 import application.utils.Log;
 import application.utils.MyTask;
+import application.utils.Util;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -22,8 +23,9 @@ public class Defects {
     /**
      * 部分数据库不需要的字段为“”，后面会直接跳过
      */
-    private static String[] fields = new String[]{"id", "svalue3", "svalue4", "raised_time", "", "nvalue6", "code",
-            "svalue1", "nvalue5", "", "", "nvalue1", "nvalue2", "svalue2", "nvalue3", "nvalue4", "severity", "", "", "",
+    private static String[] fields = new String[]{"id", "bureau_name", "bureau_code", "profession",
+            "svalue3", "svalue4", "raised_time", "", "nvalue6", "code",
+            "svalue1", "nvalue5", "km_mark", "", "nvalue1", "nvalue2", "svalue2", "nvalue3", "nvalue4", "severity", "", "", "",
             "", "", "", "", "nvalue11", "nvalue12", "", "", "", "", "", "", "", "", "", "", "line_name", "direction",
             "power_section_name"};
     // 临时表和access数据库字段一对对应：svalue3 svalue4 RunDate RunTime nvalue6 code svalue1
@@ -37,21 +39,20 @@ public class Defects {
         task.log("defects表数据总量:" + data.size());
         Log.log.writeLog(0, "defects数据总量:" + data.size());
         StringBuilder sql = new StringBuilder("insert into alarm_copy1 (");
-        for (int i = 0; i < fields.length; i++) {
-            if (fields[i].equals("")) {
+        for (String field : fields) {
+            if ("".equals(field)) {
                 continue;
             }
-            sql.append(fields[i]).append(",");
+            sql.append(field).append(",");
         }
         sql = new StringBuilder(sql.substring(0, sql.toString().length() - 1) + ") values ");
         // (valueA1,valueA2,...valueAN),(valueB1,valueB2,...valueBN)
-        for (int j = 0; j < data.size(); j++) {
-            List<String> rowData = data.get(j);
-            sql.append("(");
-            sql.append("\"").append(UUID.randomUUID().toString()).append("\"").append(",");
-            // 排除id列，append的时候索引需要-1
-            for (int i = 1; i < fields.length; i++) {
-                if (fields[i].equals("")) {
+        for (List<String> rowData : data) {
+            sql.append("(\"").append(UUID.randomUUID().toString()).append("\"").append(",");
+            Util.addBaseInfo(sql).append("\"GW\",");
+            // 排除前几列，append的时候索引需要-1
+            for (int i = 4; i < fields.length; i++) {
+                if ("".equals(fields[i])) {
                     continue;
                 }
                 /*
@@ -59,36 +60,31 @@ public class Defects {
                  * hh-mm-ss格式 // 2019-11-27 14:10:03 <br> RunDate 2019/8/30 00:00:00.0000000
                  * RunTime 20:23:04
                  */
-                if (i == 3) {
-                    String result = "";
-                    String runDataStr = rowData.get(i - 1);
-                    String runTimeStr = rowData.get(i);
-                    if (runDataStr != null && !runDataStr.equals("")) {
-                        result = "2019-11-27 14:10:03";
-                    } else {
-                        String resultRunData = runDataStr.trim().replaceAll("/", "-").substring(0, 10);
-                        if (runDataStr != null && !runDataStr.equals("")) {
-                            result = resultRunData + " 14:10:03";
-                        } else {
-                            result = resultRunData + " " + runTimeStr.trim();
-                        }
-                    }
-                    sql.append("\"").append(result).append("\"").append(",");
-                    // task.log("1alarm table raise_time:" + result);
+                if (i == 6) {
+                    String runDataStr = rowData.get(i - 4);
+                    String runTimeStr = rowData.get(i-3);
+                    sql.append("\"").append(Util.getDataTime(runDataStr, runTimeStr)).append("\"").append(",");
                     continue;
                 }
 
-                if (rowData.get(i - 1) == null) {
+                //km_mark拼接
+                if (i == 12) {
+                    String maxPost = rowData.get(i - 4);
+                    String maxMinor = rowData.get(i - 3);
+                    sql.append("\"").append(Integer.parseInt(maxPost) * 1000 + maxMinor).append("\"").append(",");
+                    continue;
+                }
+
+                if (rowData.get(i - 4) == null) {
                     sql.append("NULL,");
                 } else {
-                    sql.append("\"").append(rowData.get(i - 1)).append("\"").append(",");
+                    sql.append("\"").append(rowData.get(i - 4)).append("\"").append(",");
                 }
             }
             sql = new StringBuilder(sql.substring(0, sql.toString().length() - 1) + "),");
         }
         String resultSql = sql.toString().substring(0, sql.toString().length() - 1) + ";";
-
-        // log.detailLog(resultSql.substring(0, 300));
+        //System.out.println(resultSql);
         Connection connection = MySqlUtil.getConnection();
         synchronized (connection) {
             try {
@@ -105,9 +101,11 @@ public class Defects {
                 sum += num;
                 return true;
             } catch (SQLException e) {
+                e.printStackTrace();
                 MySqlUtil.rollback(connection);
                 Log.log.writeLog(-1, "数据插入异常，已回滚\n" + ExceptionUtil.getExceptionInfo(e));
             } catch (Exception e) {
+                e.printStackTrace();
                 MySqlUtil.rollback(connection);
                 System.out.println("连接为空或者已关闭!" + e.getMessage());
             }

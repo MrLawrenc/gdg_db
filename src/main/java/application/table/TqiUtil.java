@@ -4,10 +4,7 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import application.db.MySqlUtil;
 import application.utils.ExceptionUtil;
@@ -46,16 +43,16 @@ public class TqiUtil {
                 String fromMinor = tqiPo.getFromMinor();
 
                 //或取行转列之后的每一列的值
-                String[] tvalues = new String[14];
+                String[] tValues = new String[14];
                 for (int i = 0; i < fields.length; i++) {
                     for (TqiPo po : needRow) {
                         if (fields[i].equals(po.gettQIMetricName())) {
-                            tvalues[i] = po.gettQIValue();
+                            tValues[i] = po.gettQIValue();
                         }
                     }
                 }
-                tqiPo.setTargetFields(tvalues[0], tvalues[1], tvalues[2], tvalues[3], tvalues[4], tvalues[5], tvalues[6],
-                        tvalues[7], tvalues[8], tvalues[9], tvalues[10], tvalues[11], tvalues[12], tvalues[13]);
+                tqiPo.setTargetFields(tValues[0], tValues[1], tValues[2], tValues[3], tValues[4], tValues[5], tValues[6],
+                        tValues[7], tValues[8], tValues[9], tValues[10], tValues[11], tValues[12], tValues[13]);
 
                 int kmMark = Integer.parseInt(fromPost) * 1000 + Integer.parseInt(fromMinor);
                 tqiPo.setKmMark(BigDecimal.valueOf(kmMark));
@@ -66,7 +63,7 @@ public class TqiUtil {
         // RecordNumber SubCode RunDate RunTime FromPost FromMinor TQIMetricName
         // TQIValue BasePost TrackID RunID
 
-        sql.append("RecordNumber,SubCode,RunDate,RunTime,FromPost,FromMinor,TQIMetricName,TQIValue,BasePost,TrackID," +
+        sql.append("id,bureau_name,bureau_code,RecordNumber,SubCode,RunDate,RunTime,raised_time,FromPost,FromMinor,km_mark,TQIMetricName,TQIValue,BasePost,TrackID," +
                 "RunID,line_name,direction,power_section_name,");
         /* MAXSPEED;MEANSPEED STDLATACCEL  STDVERTACCEL  TBCE STDSUMS  EXCEEDED R_STDSURF L_STDSURF  L_STDALIGN
          *  R_STDALIGN  STDGAUGE  STDTWIST  STDCROSSLEVEL
@@ -75,14 +72,32 @@ public class TqiUtil {
                 "R_STDALIGN,STDGAUGE,STDTWIST,STDCROSSLEVEL) values ");
 
         // (valueA1,valueA2,...valueAN),(valueB1,valueB2,...valueBN)
-        for (int j = 0; j < resultData.size(); j++) {
-            TqiPo rowData = resultData.get(j);
-            sql.append("(\"").append(rowData.getRecordNumber()).append("\",");
+        for (TqiPo rowData : resultData) {
+            sql.append("(\"").append(UUID.randomUUID().toString()).append("\",");
+            sql.append("\"太原铁路局\",");
+            sql.append("\"TYJ$J04\",");
+            sql.append("\"").append(rowData.getRecordNumber()).append("\",");
             sql.append("\"").append(rowData.getSubCode()).append("\",");
             sql.append("\"").append(rowData.getRunDate()).append("\",");
             sql.append("\"").append(rowData.getRunTime()).append("\",");
+
+            //拼接时间
+            if (rowData.getRunDate() == null) {
+                sql.append("\"").append("2019-11-27 14:10:03").append("\",");
+            } else {
+                String resultRunData = rowData.getRunDate().replaceAll("/", "-").substring(0, 10);
+                if (rowData.getRunTime() == null) {
+                    sql.append("\"").append(resultRunData).append(" 00:00:00").append("\",");
+                } else {
+                    sql.append("\"").append(resultRunData).append(" ").append(rowData.getRunTime()).append("\",");
+                }
+            }
+
             sql.append("\"").append(rowData.getFromPost()).append("\",");
             sql.append("\"").append(rowData.getFromMinor()).append("\",");
+            //km_mark
+            sql.append("\"").append(Integer.parseInt(rowData.getFromMinor()) + Integer.parseInt(rowData.getFromPost()) * 1000).append("\",");
+
             sql.append("\"").append(rowData.gettQIMetricName()).append("\",");
             sql.append("\"").append(rowData.gettQIValue()).append("\",");
             sql.append("\"").append(rowData.getBasePost()).append("\",");
@@ -111,10 +126,11 @@ public class TqiUtil {
         }
         String resultSql = sql.toString().substring(0, sql.toString().length() - 1) + ";";
         Connection connection = MySqlUtil.getConnection();
+        //System.out.println(resultSql);
         synchronized (connection) {
             try {
                 if (connection.isClosed()) {
-                    Log.log.writeLog(1, "tvalue:连接关闭");
+                    Log.log.writeLog(1, "tqi:连接关闭");
                     return false;
                 }
                 Statement statement = connection.createStatement();
