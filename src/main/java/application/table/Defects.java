@@ -12,6 +12,11 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * @author  : LiuMing
+ * @date : 2019/12/4 15:40
+ * @description :   TODO
+ */
 public class Defects {
     public static long sum = 0;
     // alarm表需要的字段，

@@ -135,6 +135,7 @@ public class TqiUtil {
             statement.close();
 
             task.log("tqi值插入" + num + "条成功!");
+            System.out.println("tqi值插入" + num + "条成功!");
             Log.log.writeLog(0, "tqi值插入" + num + "条成功!");
             sum += num;
             MySqlUtil.returnConn(connection);

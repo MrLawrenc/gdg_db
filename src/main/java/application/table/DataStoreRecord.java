@@ -20,12 +20,14 @@ public class DataStoreRecord {
             " where parent_file_name=? and db_file_name=? and table_name=? ;";
 
     /**
-     * 开始保存数据
+     * 开始保存数据,传入connection是保证{@link DataStoreRecord#startSave(Connection, DataStoreRecordPo)}和
+     * {@link DataStoreRecord#saveSuccess(Connection, DataStoreRecordPo)}方法在同一个connection内完成，防止当
+     * startSave执行成功之后，程序被用户关闭，可能出现保存成功但是未更新状态的情况，那么下次可能会重复入库。
+     * 当使用同一个conn之后，在连接还未归还的时候程序并不会关闭，所以即使用户关闭界面，那么保存成功之后必会更新状态，之后再返还
+     * connection对象，之后连接池关闭
      */
-    public static void startSave(DataStoreRecordPo record) {
-        Connection connection = null;
+    public static void startSave(Connection connection, DataStoreRecordPo record) {
         try {
-            connection = MySqlUtil.getConn0();
             PreparedStatement pst = connection.prepareStatement(insertSql);
             pst.setString(1, record.getParentFileName());
             pst.setString(2, record.getDbFileName());
@@ -33,23 +35,17 @@ public class DataStoreRecord {
             pst.setDate(4, record.getCreateTime());
             pst.execute();
             connection.commit();
-            MySqlUtil.returnConn(connection);
         } catch (SQLException e) {
             e.printStackTrace();
             MySqlUtil.rollback(connection);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            System.out.println("获取mysql连接失败!");
         }
     }
 
     /**
      * 保存成功，更改状态
      */
-    public static void saveSuccess(DataStoreRecordPo record) {
-        Connection connection = null;
+    public static void saveSuccess(Connection connection, DataStoreRecordPo record) {
         try {
-            connection = MySqlUtil.getConn0();
             PreparedStatement pst = connection.prepareStatement(updateSql);
             pst.setDate(1, record.getSuccessTime());
 
@@ -59,14 +55,9 @@ public class DataStoreRecord {
 
             pst.execute();
             connection.commit();
-            MySqlUtil.returnConn(connection);
         } catch (SQLException e) {
             e.printStackTrace();
             MySqlUtil.rollback(connection);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            System.out.println("获取mysql连接失败!");
         }
-
     }
 }

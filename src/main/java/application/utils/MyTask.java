@@ -7,6 +7,7 @@ import javafx.concurrent.Task;
 
 import java.io.File;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
@@ -18,13 +19,18 @@ import java.util.*;
  */
 public class MyTask extends Task<String> {
     /**
-     * 数据入库模式选择，默认单个数据库入一次库
+     * 该目录下所有已入库的记录
      */
-    private boolean useBatch = false;
+    private List<String> done;
+    /**
+     * 本次未入库的记录
+     */
+    public List<String> notSave;
 
-
-    public MyTask(File parentFile) {
+    public MyTask(File parentFile, List<String> done) {
         this.parentFile = parentFile;
+        this.done = done;
+        notSave = new ArrayList<>(done.size());
     }
 
     private File parentFile;
@@ -53,7 +59,7 @@ public class MyTask extends Task<String> {
                 try {
                     Thread.sleep(2);
                 } catch (Exception e) {
-
+                    System.out.println("线程池被意外中断.............");
                 }
             });
         } catch (Exception e) {
@@ -70,32 +76,26 @@ public class MyTask extends Task<String> {
         if (allDbFiles.size() == 0) {
             return "0该文件夹下没数据！";
         }
-        if (allDbFiles.size() == 0) {
-            return "1文件夹下数据都已入过库！";
-        }
 
         Log.log.writeLog(0, "db数量：" + allDbFiles.size());
         updateProgress(3, 100);
-        if (useBatch) {
-            System.out.println("已删除大批量入库方法..............");
-        } else {
-            double size = allDbFiles.size();
-            double temp = Util.round(3, 5);
-            double everyNum = Util.round(94.00000 / Util.round(size, 5), 5);
-            for (File file : allDbFiles) {
 
-                singleDbAdd(temp, everyNum, file);
-                temp += everyNum;
-                updateProgress(temp, 100);
-            }
-            System.out.println("总共插入数据:tqi->" + TqiUtil.sum + "  tvalue->" + TValueUtil.sum + "  defects->"
-                    + Defects.sum + "  kms->" + Kms.sum);
+        double size = allDbFiles.size();
+        double temp = Util.round(3, 5);
+        double everyNum = Util.round(94.00000 / Util.round(size, 5), 5);
+        for (File file : allDbFiles) {
+
+            singleDbAdd(temp, everyNum, file);
+            temp += everyNum;
+            updateProgress(temp, 100);
         }
+        System.out.println("总共插入数据:tqi->" + TqiUtil.sum + "  tvalue->" + TValueUtil.sum + "  defects->"
+                + Defects.sum + "  kms->" + Kms.sum);
         updateProgress(97, 100);
         //执行更新操作
         executeSqlUpdate();
         updateProgress(100, 100);
-        return "总共插入数据:tqi->" + TqiUtil.sum + "  tvalue->" + TValueUtil.sum + "  defects->" + Defects.sum + "  kms->"
+        return "总共插入数据:tqi->" + TqiUtil.sum + "  tvalue->" + TValueUtil.sum + "  alarm->" + Defects.sum + "  kms->"
                 + Kms.sum + "\n";
     }
 
@@ -114,7 +114,7 @@ public class MyTask extends Task<String> {
                 String tableNameKey = tableNamePre + tableName;
                 String tableDataKey = tableDataPre + tableName;
                 List<List<String>> tableData = AccessUtil.getTableDataByTableName(dbPath, tableName);
-                List<List<String>> metaList = new ArrayList<List<String>>(1);
+                List<List<String>> metaList = new ArrayList<>(1);
                 metaList.add(tableData.get(0));
                 allDataMap.putIfAbsent(tableNameKey, metaList);
                 // 删除表头信息
@@ -146,9 +146,7 @@ public class MyTask extends Task<String> {
     private void executeSqlUpdate() {
         Log.log.writeLog(0, "开始执行sql更新脚本!");
 
-        //再更新所有记录表
-//        Connection connection = MySqlUtil.getConnection();
-        Connection connection = null;
+        Connection connection;
         try {
             connection = MySqlUtil.getConn0();
         } catch (InterruptedException e) {
@@ -178,11 +176,22 @@ public class MyTask extends Task<String> {
         if (!abstractInfo[2].contains(detectName)) {
             detectName = "单专业";
         }
+        String quarter = "4";
+        if (abstractInfo[1].contains("一")) {
+            quarter = "1";
+        } else if (abstractInfo[1].contains("二")) {
+            quarter = "2";
+        } else if (abstractInfo[1].contains("三")) {
+            quarter = "3";
+        }
+
         String id = UUID.randomUUID().toString();
         //先更新批次表
-        String updateSql = "insert into rpt_gw_sumary(detect_batch_id,detect_batch_name,detect_device_code,detect_name) " +
+        String updateSql = "insert into rpt_gw_sumary(detect_batch_id,detect_batch_name,detect_device_code,detect_name,detect_year,detect_season,create_time) " +
                 "values ( \"" + id + "\",\"" + abstractInfo[0] + abstractInfo[1] + "\",\"" + abstractInfo[2]
-                + "\",\"" + detectName + "\");";
+                + "\",\"" + detectName + "\",\"" + abstractInfo[0].split("年")[0] + "\",\"" + quarter
+                + "\",\"" + new Date(System.currentTimeMillis()) + "\");";
+        //System.out.println(updateSql);
         try {
             Statement statement = connection.createStatement();
             int i = statement.executeUpdate(updateSql);
@@ -195,15 +204,20 @@ public class MyTask extends Task<String> {
                 String sql1 = "UPDATE rpt_gw_tqi SET abstract_id=\"" + id + "\" WHERE ISNULL(abstract_id);";
                 String sql2 = "UPDATE rpt_gw_kmscore SET abstract_id=\"" + id + "\" WHERE ISNULL(abstract_id);";
                 String sql3 = "UPDATE rpt_gw_tvalue SET abstract_id=\"" + id + "\" WHERE ISNULL(abstract_id);";
+                String sql4 = "UPDATE alarm_copy1 SET abstract_id=\"" + id + "\" WHERE ISNULL(abstract_id);";
                 int i1 = connection.createStatement().executeUpdate(sql1);
                 int i2 = connection.createStatement().executeUpdate(sql2);
                 int i3 = connection.createStatement().executeUpdate(sql3);
+                int i4 = connection.createStatement().executeUpdate(sql4);
                 connection.commit();
                 updateMessage("\n\ttqi表更新数量:" + i1 + "\n\tkms表更新数量:" + i2 + "\n\ttvalue表更新数量：" + i3);
-                Log.log.writeLog(0, "tqi表更新数量:" + i1 + "\tkms表更新数量:" + i2 + "\ttvalue表更新数量：" + i3);
+                Log.log.writeLog(0, "tqi表更新数量:" + i1 + "\tkms表更新数量:" + i2 + "\n\talarm表更新数量:" + i4
+                        + "\ttvalue表更新数量：" + i3);
             }
 
         } catch (SQLException e) {
+            updateMessage("批次信息更新失败！");
+            MySqlUtil.rollback(connection);
             Log.log.writeLog(0, "批次相关信息更新异常.....................");
             e.printStackTrace();
         }
@@ -246,8 +260,24 @@ public class MyTask extends Task<String> {
      * 分发执行sql实现，根据结果设置本次插入记录
      */
     private void executeSql(Map<String, List<List<String>>> allData, String dbFileName, int tableNameIndex) {
+        String flag = dbFileName + Util.tables[tableNameIndex];
+        if (done.contains(flag)) {
+            done.remove(flag);
+            String notSave = dbFileName + " " + Util.tables[tableNameIndex];
+            System.out.println(notSave + " 已入库，将跳过该表数据！");
+            this.notSave.add(notSave);
+            return;
+        }
+
+        Connection conn0;
+        try {
+            conn0 = MySqlUtil.getConn0();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return;
+        }
         DataStoreRecordPo startSave = new DataStoreRecordPo(parentFile.getName(), dbFileName, Util.tables[tableNameIndex]);
-        DataStoreRecord.startSave(startSave);
+        DataStoreRecord.startSave(conn0, startSave);
         boolean success;
         switch (tableNameIndex) {
             case 0:
@@ -267,8 +297,9 @@ public class MyTask extends Task<String> {
                 success = false;
         }
         if (success) {
-            DataStoreRecord.saveSuccess(startSave.toSuccess());
+            DataStoreRecord.saveSuccess(conn0, startSave.toSuccess());
         }
+        MySqlUtil.returnConn(conn0);
         allData.remove(tableDataPre + Util.tables[tableNameIndex]);
     }
 

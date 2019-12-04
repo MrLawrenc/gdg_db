@@ -9,6 +9,17 @@ import java.sql.Date;
  * @description : 记录入库信息模型
  */
 public class DataStoreRecordPo {
+    @Override
+    public String toString() {
+        return "DataStoreRecordPo{" +
+                "parentFileName='" + parentFileName + '\'' +
+                ", dbFileName='" + dbFileName + '\'' +
+                ", tableName='" + tableName + '\'' +
+                ", state=" + state +
+                ", createTime=" + createTime +
+                ", successTime=" + successTime +
+                '}';
+    }
 
     private String parentFileName;
     private String dbFileName;

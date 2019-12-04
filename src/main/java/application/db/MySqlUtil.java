@@ -43,6 +43,7 @@ public class MySqlUtil {
      * 获取连接
      */
     public static Connection getConn0() throws InterruptedException {
+        System.out.println("连接池剩余连接数："+connPool.size());
         //移除并返回头部元素，如果为空则阻塞
         return connPool.take();
     }

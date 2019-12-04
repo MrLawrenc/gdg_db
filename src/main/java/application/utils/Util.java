@@ -92,7 +92,6 @@ public class Util {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        //MySqlUtil.closeConnection();
         MySqlUtil.close0();
         Log.log.close();
 

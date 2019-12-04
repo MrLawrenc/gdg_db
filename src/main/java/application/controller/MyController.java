@@ -16,10 +16,12 @@ import javafx.stage.Stage;
 import java.io.*;
 import java.net.URL;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.CompletableFuture;
@@ -28,55 +30,24 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @SuppressWarnings("all")
 public class MyController implements Initializable {
     @FXML
-    private Tab oneTab;
-    @FXML
     private TextField parentFilePath;
     @FXML
-    private ComboBox<String> sourceDbType;
-    @FXML
-    private ComboBox<String> targetDbType;
-    @FXML
-    private ComboBox<String> sourceDb;
-    @FXML
-    private ComboBox<String> targetDb;
-    @FXML
-    private ComboBox<String> sourceTable;
-    @FXML
-    private ComboBox<String> targetTable;
-    @FXML
-    private ComboBox<String> modle;
-    @FXML
-    private ComboBox<String> selectMap;
-    /**
-     * 字段对应关系的模式选择
-     */
-    @FXML
-    private ComboBox<String> fieldMap;
-
-    @FXML
-    private Button dbBtn;
-    @FXML
     private Button batch;
-    @FXML
-    private ListView<String> sourceFields;
-    @FXML
-    private ListView<String> targetFields;
-    @FXML
-    private TextArea specialMap;
     @FXML
     private TextArea log;
     @FXML
     private ProgressBar progressBar;
+
+
+    /**
+     * 选中的文件夹
+     */
+    private File selectFile;
     /**
      * 弹窗控件
      */
     private Dialog<ButtonType> dialog;
-    private String url;
-    private String username;
-    private String password;
-    /**
-     * 是否是正在运行状态
-     */
+
 
     private Stage stage;
 
@@ -84,17 +55,23 @@ public class MyController implements Initializable {
         this.stage = stage;
     }
 
+    /**
+     * 是否是正在运行状态
+     */
     private AtomicBoolean running = new AtomicBoolean(false);
     /**
      * 获取所有已入库的记录
      */
-    private String getRecordInfoSql = "select parent_file_name,db_file_name,table_name from data_store_record where state=1";
-    private List<String> done = new ArrayList<>(10000);
+    private String getRecordInfoSql = "select db_file_name,table_name from data_store_record where parent_file_name=? and state=1";
+    /**
+     * 存储当前选中目录parentFile下面所有保存成功的数据,初始化容量根据给的资料确定(一个季度70个库，每个库5张表，大概是350条记录，其余做冗余)
+     */
+    private List<String> done = Collections.synchronizedList(new ArrayList<>(500));
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        batch.setDisable(true);
         initDialog();
-
         //parentFilePath.setText("E:\\\\工电供资料\\\\document\\\\6.客户资料\\\\工务\\\\工务检测数据\\\\2019年第三季度综合检测车联检");
         parentFilePath.setDisable(true);
         Platform.runLater(() -> {
@@ -106,8 +83,6 @@ public class MyController implements Initializable {
             });
             ThreadUtil.BLOCK_QUEUE_EXECUTOR.execute(connTask);
         });
-
-        CompletableFuture.runAsync(() -> initFileInfo(), ThreadUtil.BLOCK_QUEUE_EXECUTOR);
     }
 
     /*
@@ -154,6 +129,9 @@ public class MyController implements Initializable {
             dialog.show();
             return;
         }
+        selectFile = file;
+        CompletableFuture.runAsync(() -> initFileInfo(), ThreadUtil.BLOCK_QUEUE_EXECUTOR);
+        batch.setDisable(false);
         parentFilePath.setText(path);
     }
 
@@ -171,17 +149,10 @@ public class MyController implements Initializable {
         progressBar.setProgress(0.01);
         log.clear();
 
-        String path = parentFilePath.getText();
-        if (path == null || "".equals(path.trim())) {
-            dialog.setContentText("请选择数据库文件所在的文件夹目录!");
-            dialog.show();
-            return;
-        }
-
 
         running.compareAndSet(false, true);
         progressBar.setProgress(0.01);
-        MyTask task = new MyTask(new File(path));
+        MyTask task = new MyTask(selectFile, done);
         // 监听task的updateMessage方法,实现日志更新
         task.messageProperty().addListener(new ChangeListener<String>() {
             @Override
@@ -214,18 +185,23 @@ public class MyController implements Initializable {
                     dialog.setContentText(newValue.substring(1));
                     dialog.show();
                     return;
-                } else if ("1".equals(newValue.subSequence(0, 1))) {
-                    dialog.setContentText(newValue.substring(1));
-                    dialog.show();
-                    return;
                 }
                 log.appendText(newValue + LocalDateTime.now() + " 数据处理完毕!\n");
-                Log.log.writeLog(0, "数据处理完毕!");
+                Log.log.writeLog(0, "数据处理完毕!\n");
+                //解析错误记录
                 if (Util.exceptionName.size() > 0) {
                     dialog.setContentText("部分数据入库线路、行别、工务段解析失败，详情查看日志！");
                     dialog.show();
-                    String exceptionInfo = Util.exceptionName.stream().reduce((v1, v2) -> v1 + v2 + "\n").get();
+                    String exceptionInfo = Util.exceptionName.stream().reduce((v1, v2) -> v1 + "\n" + v2 + "\n").get();
                     log.appendText("线路、行别、工务段解析失败记录（使用默认值”文件名异常“保存）:\n" + exceptionInfo);
+                }
+                //未入库信息统计
+                if (task.notSave.size() > 0) {
+                    String result = "";
+                    for (String notSave : task.notSave) {
+                        result += "\t"+notSave + "\n";
+                    }
+                    log.appendText("本次未入库信息如下:\n" + result);
                 }
             }
         });
@@ -241,12 +217,12 @@ public class MyController implements Initializable {
     public void initFileInfo() {
         try {
             Connection conn = MySqlUtil.getConn0();
-            Statement statement = conn.createStatement();
-            ResultSet resultSet = statement.executeQuery(getRecordInfoSql);
+            PreparedStatement statement = conn.prepareStatement(getRecordInfoSql);
+            statement.setString(1, selectFile.getName());
+            ResultSet resultSet = statement.executeQuery();
             conn.commit();
             while (resultSet.next()) {
-                done.add(resultSet.getString("parent_file_name") + resultSet.getString("db_file_name") +
-                        resultSet.getString("table_name"));
+                done.add(resultSet.getString("db_file_name") + resultSet.getString("table_name"));
             }
             resultSet.close();
             statement.close();
