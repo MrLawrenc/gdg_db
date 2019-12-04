@@ -6,12 +6,37 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * @author : LiuMing
+ * @date : 2019/12/4 13:33
+ * @description :   TODO
+ */
 @SuppressWarnings("all")
 public class MySqlUtil {
+    private static ArrayBlockingQueue<Connection> connPool = new ArrayBlockingQueue<>(10);
+
+
+    public void init(String url, String username, String pwd) {
+        try {
+            for (int i = 0; i < connPool.size(); i++) {
+                Connection connection = DriverManager.getConnection(url, username, pwd);
+                connection.setAutoCommit(false);
+                connPool.add(connection);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static Connection getConn0() throws InterruptedException {
+        //移除并返回头部元素，如果为空则阻塞
+        return connPool.take();
+    }
 
     //old driver
     // private static final String DRIVER = "com.mysql.jdbc.Driver";

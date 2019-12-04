@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.UUID;
 
 import application.db.MySqlUtil;
 import application.utils.ExceptionUtil;
@@ -33,16 +34,20 @@ public class Kms {
         task.log("kms表数据总量:" + data.size());
         Log.log.writeLog(0, "kms数据总量:" + data.size());
         StringBuilder sql = new StringBuilder("insert into rpt_gw_kmscore (");
-        for (int i = 0; i < fields.length; i++) {
-            sql.append(fields[i]).append(",");
+        //其余固定信息字段
+        sql.append("id,bureau_name,bureau_code,km_mark,");
+        for (String field : fields) {
+            sql.append(field).append(",");
         }
         sql = new StringBuilder(sql.substring(0, sql.toString().length() - 1) + ") values ");
-        // (valueA1,valueA2,...valueAN),(valueB1,valueB2,...valueBN)
+
         for (int j = 0; j < data.size(); j++) {
             List<String> rowData = data.get(j);
-            sql.append("(");
+            //其余固定信息字段值
+            sql.append("(\"").append(UUID.randomUUID().toString()).append("\",\"太原铁路局\",\"TYJ$J04\",\"")
+                    .append(Integer.parseInt(rowData.get(0)) * 1000).append("\",");
             for (int i = 0; i < fields.length; i++) {
-                sql.append("\"").append(rowData.get(i)).append("\"").append(",");
+                sql.append("\"").append(rowData.get(i)).append("\",");
             }
             sql = new StringBuilder(sql.substring(0, sql.toString().length() - 1) + "),");
         }

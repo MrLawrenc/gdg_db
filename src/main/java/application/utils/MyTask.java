@@ -330,7 +330,7 @@ public class MyTask extends Task<String> {
             RecordedInfo.recored.recoredFileInfo(true, dbPath + " tvalue");
         }
         allData.remove(tableDataPre + Util.tables[0]);
-
+/*
         RecordedInfo.recored.recoredFileInfo(false, dbPath + " tqi");
         boolean tqiSuccess = TqiUtil.save(allData.get(tableNamePre + Util.tables[1]),
                 allData.get(tableDataPre + Util.tables[1]), this);
@@ -354,7 +354,7 @@ public class MyTask extends Task<String> {
             RecordedInfo.recored.recoredFileInfo(true, dbPath + " defects");
         }
         allData.remove(tableDataPre + Util.tables[3]);
-
+*/
     }
 
     /**

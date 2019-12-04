@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.UUID;
 
 import application.db.MySqlUtil;
 import application.utils.ExceptionUtil;
@@ -27,7 +28,9 @@ public class TValueUtil {
         // log(name);
         // }
 
-        sql.append("km_mark").append(",");
+        //其余固定信息字段
+        sql.append("id,bureau_name,bureau_code,km_mark,");
+        sql.append("post").append(",");
         sql.append("examine_std").append(",");
         sql.append("un_exceed_std").append(",");
         sql.append("exceed_std").append(",");
@@ -40,9 +43,9 @@ public class TValueUtil {
         sql.append(") values ");
 
         // (valueA1,valueA2,...valueAN),(valueB1,valueB2,...valueBN)
-        for (int j = 0; j < data.size(); j++) {
-            List<String> rowData = data.get(j);
-            sql.append("(");
+        for (List<String> rowData : data) {
+            sql.append("(\"").append(UUID.randomUUID().toString()).append("\",\"太原铁路局\",\"TYJ$J04\",\"")
+                    .append(Integer.parseInt(rowData.get(0)) * 1000).append("\",");
             sql.append(rowData.get(0)).append(",");
             sql.append(rowData.get(1)).append(",");
             sql.append(rowData.get(2)).append(",");
@@ -56,6 +59,7 @@ public class TValueUtil {
         }
 
         String resultSql = sql.toString().substring(0, sql.toString().length() - 1) + ";";
+        //System.out.println(resultSql);
         Connection connection = MySqlUtil.getConnection();
         synchronized (connection) {
             try {
