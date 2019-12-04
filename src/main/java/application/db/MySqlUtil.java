@@ -18,24 +18,58 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @SuppressWarnings("all")
 public class MySqlUtil {
-    private static ArrayBlockingQueue<Connection> connPool = new ArrayBlockingQueue<>(10);
+    private static int poolSize = 10;
+    private static ArrayBlockingQueue<Connection> connPool = new ArrayBlockingQueue<>(poolSize);
 
 
-    public void init(String url, String username, String pwd) {
+    /**
+     * 初始化mysql连接池
+     */
+    public static void init(String url, String username, String pwd) {
         try {
-            for (int i = 0; i < connPool.size(); i++) {
+            for (int i = 0; i < poolSize; i++) {
                 Connection connection = DriverManager.getConnection(url, username, pwd);
                 connection.setAutoCommit(false);
                 connPool.add(connection);
+                System.out.println("mysql以初始化的连接数:" + (i + 1));
             }
+            System.out.println("mysql连接池全部初始化完毕。。。。。。。。。。。。");
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     * 获取连接
+     */
     public static Connection getConn0() throws InterruptedException {
         //移除并返回头部元素，如果为空则阻塞
         return connPool.take();
+    }
+
+    /**
+     * 归还连接
+     */
+    public static void returnConn(Connection connection) {
+        //移除并返回头部元素，如果为空则阻塞
+        connPool.add(connection);
+    }
+
+    /**
+     * 关闭所有连接
+     */
+    public static void close0() {
+        try {
+            for (int i = 0; i < poolSize; i++) {
+                Connection connection = connPool.take();
+                if (connection != null && !connection.isClosed()) {
+                    connection.close();
+                }
+            }
+            System.out.println("mysql连接池关闭完成...........");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     //old driver

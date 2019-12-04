@@ -25,7 +25,7 @@ public class TqiUtil {
             "STDSUMS", "EXCEEDED", "R_STDSURF", "L_STDSURF", "L_STDALIGN",
             "R_STDALIGN", "STDGAUGE", "STDTWIST", "STDCROSSLEVEL"};
 
-    public static boolean save(List<List<String>> metaNames, List<List<String>> data, MyTask task) {
+    public static boolean save( List<List<String>> data, MyTask task) {
         task.log("tqi数据总量:" + data.size());
         Log.log.writeLog(0, "tqi数据总量:" + data.size());
         StringBuilder sql = new StringBuilder("insert into rpt_gw_tqi (");
@@ -125,35 +125,29 @@ public class TqiUtil {
             sql.append("\"").append(rowData.getSTDCROSSLEVEL()).append("\"),");
         }
         String resultSql = sql.toString().substring(0, sql.toString().length() - 1) + ";";
-        Connection connection = MySqlUtil.getConnection();
-        //System.out.println(resultSql);
-        synchronized (connection) {
-            try {
-                if (connection.isClosed()) {
-                    Log.log.writeLog(1, "tqi:连接关闭");
-                    return false;
-                }
-                Statement statement = connection.createStatement();
-                connection.setAutoCommit(false);
-                int num = statement.executeUpdate(resultSql);
-                connection.commit();
-                statement.close();
+        Connection connection = null;
+        try {
+            connection = MySqlUtil.getConn0();
+            Statement statement = connection.createStatement();
+            connection.setAutoCommit(false);
+            int num = statement.executeUpdate(resultSql);
+            connection.commit();
+            statement.close();
 
-                task.log("tqi值插入" + num + "条成功!");
-                Log.log.writeLog(0, "tqi值插入" + num + "条成功!");
-                sum += num;
-                return true;
-
-            } catch (SQLException e) {
-                e.printStackTrace();
-                MySqlUtil.rollback(connection);
-                Log.log.writeLog(-1, "数据插入异常，已回滚\n" + ExceptionUtil.getExceptionInfo(e));
-            } catch (Exception e) {
-                e.printStackTrace();
-                MySqlUtil.rollback(connection);
-                System.out.println("连接为空或者已关闭!" + e.getMessage());
-            }
+            task.log("tqi值插入" + num + "条成功!");
+            Log.log.writeLog(0, "tqi值插入" + num + "条成功!");
+            sum += num;
+            MySqlUtil.returnConn(connection);
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            MySqlUtil.rollback(connection);
+            Log.log.writeLog(-1, "数据插入异常，已回滚\n" + ExceptionUtil.getExceptionInfo(e));
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("获取连接失败!" + e.getMessage());
         }
+        MySqlUtil.returnConn(connection);
         return false;
     }
 }

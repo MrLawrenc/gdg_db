@@ -20,7 +20,7 @@ public class TValueUtil {
 
     public static long sum = 0;
 
-    public static boolean save(List<List<String>> metaNames, List<List<String>> data, MyTask task) {
+    public static boolean save( List<List<String>> data, MyTask task) {
         task.log("tvalue数据量:" + data.size());
         Log.log.writeLog(0, "tvalue数据量:" + data.size());
         StringBuilder sql = new StringBuilder("insert into rpt_gw_tvalue (");
@@ -59,33 +59,28 @@ public class TValueUtil {
         }
 
         String resultSql = sql.toString().substring(0, sql.toString().length() - 1) + ";";
-        //System.out.println(resultSql);
-        Connection connection = MySqlUtil.getConnection();
-        synchronized (connection) {
-            try {
-                if (connection.isClosed()) {
-                    Log.log.writeLog(1, "tvalue:连接关闭");
-                    return false;
-                }
-                Statement statement = connection.createStatement();
-                connection.setAutoCommit(false);
-                int num = statement.executeUpdate(resultSql);
-                connection.commit();
-                statement.close();
-                task.log("tvalue值插入" + num + "条成功!");
-                Log.log.writeLog(0, "tvalue值插入" + num + "条成功!");
-                sum += num;
-                return true;
-            } catch (SQLException e) {
-                MySqlUtil.rollback(connection);
-                e.printStackTrace();
-                Log.log.writeLog(-1, "数据插入异常，已回滚\n" + ExceptionUtil.getExceptionInfo(e));
-            } catch (Exception e) {
-                MySqlUtil.rollback(connection);
-                e.printStackTrace();
-                System.out.println("连接为空或者已关闭!" + e.getMessage());
-            }
+        Connection connection = null;
+        try {
+            connection = MySqlUtil.getConn0();
+            Statement statement = connection.createStatement();
+            connection.setAutoCommit(false);
+            int num = statement.executeUpdate(resultSql);
+            connection.commit();
+            statement.close();
+            task.log("tvalue值插入" + num + "条成功!");
+            Log.log.writeLog(0, "tvalue值插入" + num + "条成功!");
+            sum += num;
+            MySqlUtil.returnConn(connection);
+            return true;
+        } catch (SQLException e) {
+            MySqlUtil.rollback(connection);
+            e.printStackTrace();
+            Log.log.writeLog(-1, "数据插入异常，已回滚\n" + ExceptionUtil.getExceptionInfo(e));
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("获取连接失败!" + e.getMessage());
         }
+        MySqlUtil.returnConn(connection);
         return false;
     }
 }

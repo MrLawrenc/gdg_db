@@ -15,10 +15,14 @@ import javafx.stage.Stage;
 
 import java.io.*;
 import java.net.URL;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @SuppressWarnings("all")
@@ -73,10 +77,45 @@ public class MyController implements Initializable {
     /**
      * 是否是正在运行状态
      */
+
+    private Stage stage;
+
+    public void setStage(Stage stage) {
+        this.stage = stage;
+    }
+
     private AtomicBoolean running = new AtomicBoolean(false);
+    /**
+     * 获取所有已入库的记录
+     */
+    private String getRecordInfoSql = "select parent_file_name,db_file_name,table_name from data_store_record where state=1";
+    private List<String> done = new ArrayList<>(10000);
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        initDialog();
+
+        //parentFilePath.setText("E:\\\\工电供资料\\\\document\\\\6.客户资料\\\\工务\\\\工务检测数据\\\\2019年第三季度综合检测车联检");
+        parentFilePath.setDisable(true);
+        Platform.runLater(() -> {
+            ConnTask connTask = new ConnTask();
+            connTask.messageProperty().addListener((observableValue, oldValue, newValue) -> {
+                batch.setDisable(true);
+                dialog.setContentText(newValue);
+                dialog.show();
+            });
+            ThreadUtil.BLOCK_QUEUE_EXECUTOR.execute(connTask);
+        });
+
+        CompletableFuture.runAsync(() -> initFileInfo(), ThreadUtil.BLOCK_QUEUE_EXECUTOR);
+    }
+
+    /*
+     * =================================分割线=========================================
+     */
+
+
+    private void initDialog() {
         dialog = new Dialog<ButtonType>();
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.OK);
@@ -89,38 +128,6 @@ public class MyController implements Initializable {
                 System.out.println("关闭提示框");
             }
         });
-        parentFilePath.setText("E:\\\\工电供资料\\\\document\\\\6.客户资料\\\\工务\\\\工务检测数据\\\\2019年第三季度综合检测车联检");
-        parentFilePath.setDisable(true);
-        Platform.runLater(() -> {
-            ConnTask connTask = new ConnTask();
-            connTask.messageProperty().addListener((observableValue, oldValue, newValue) -> {
-                batch.setDisable(true);
-                dialog.setContentText(newValue);
-                dialog.show();
-            });
-            ThreadUtil.BLOCK_QUEUE_EXECUTOR.execute(connTask);
-        });
-        // 初始化文件保存的信息
-        try {
-            initFileInfo();
-        } catch (IOException e1) {
-            e1.printStackTrace();
-        }
-//         mysqlUrl.setText(
-//         "jdbc:mysql://192.168.3.52:3306/idcty?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC");
-//         mysqlUsername.setText("idcty");
-//         mysqlPwd.setText("123456Aa");
-
-    }
-
-    /*
-     * =================================分割线=========================================
-     */
-
-    private Stage stage;
-
-    public void setStage(Stage stage) {
-        this.stage = stage;
     }
 
 
@@ -174,7 +181,7 @@ public class MyController implements Initializable {
 
         running.compareAndSet(false, true);
         progressBar.setProgress(0.01);
-        MyTask task = new MyTask(new File(path), cache);
+        MyTask task = new MyTask(new File(path));
         // 监听task的updateMessage方法,实现日志更新
         task.messageProperty().addListener(new ChangeListener<String>() {
             @Override
@@ -225,64 +232,29 @@ public class MyController implements Initializable {
         new Thread(task, "gtdq-gdt-task").start();
         progressBar.setProgress(0.02);
 
-        if (cache.unFinishFilePathList != null && cache.unFinishFilePathList.size() > 0) {
-            dialog.setContentText("存在上次入库中断情况，稍后会自动清理脏数据！");
-            log.appendText("存在上次入库中断情况，稍后会自动清理脏数据！");
-            dialog.show();
-        }
     }
 
-    private Cache cache = new Cache();
 
     /**
      * 根据本地文件记录，获取连接信息、以入库的信息
      */
-    public boolean initFileInfo() throws IOException {
-        File file = new File(RecordedInfo.recored.recoredFileName);
-        if (!file.exists()) {
-            return false;
-        }
-        FileInputStream fis = new FileInputStream(file);
-        InputStreamReader isr = new InputStreamReader(fis, "UTF-8");
-        BufferedReader br = new BufferedReader(isr);
-        String line = "";
-        List<String> finishList = new ArrayList<>();
-        List<String> unFinishList = new ArrayList<>();
-        while ((line = br.readLine()) != null) {
-            // 添加换行符
-            // tempStream.append(System.getProperty("line.separator"))
-            if (line.contains(RecordedInfo.mysqlInfo)) {
-                String[] mysqlInfo = line.split(RecordedInfo.mysqlInfo)[1].split(" ");
-                cache.url = mysqlInfo[0];
-                cache.username = mysqlInfo[1];
-                cache.password = mysqlInfo[2];
+    public void initFileInfo() {
+        try {
+            Connection conn = MySqlUtil.getConn0();
+            Statement statement = conn.createStatement();
+            ResultSet resultSet = statement.executeQuery(getRecordInfoSql);
+            conn.commit();
+            while (resultSet.next()) {
+                done.add(resultSet.getString("parent_file_name") + resultSet.getString("db_file_name") +
+                        resultSet.getString("table_name"));
             }
-            if (line.contains(RecordedInfo.filePathPre)) {
-                String fileInfo = line.split(RecordedInfo.filePathPre)[1];
-                if (line.contains(RecordedInfo.fileState0)) {
-                    String dbAndTable = fileInfo.split(RecordedInfo.fileState0)[0];
-                    unFinishList.add(dbAndTable);
-                } else {
-                    String dbAndTable = fileInfo.split(RecordedInfo.fileState1)[0];
-                    finishList.add(dbAndTable);
-                }
-            }
+            resultSet.close();
+            statement.close();
+            MySqlUtil.returnConn(conn);
+            System.out.println("已入库信息获取成功,已入库表数量:" + done.size());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        cache.doneFilePathList = finishList;
-        cache.unFinishFilePathList = unFinishList;
-        br.close();
-        isr.close();
-        fis.close();
-        return true;
-    }
-
-
-    public static class Cache {
-        private String url;
-        private String username;
-        private String password;
-        public List<String> doneFilePathList;
-        public List<String> unFinishFilePathList;
     }
 
     /**
@@ -292,12 +264,14 @@ public class MyController implements Initializable {
 
         @Override
         protected Boolean call() throws Exception {
+
             File file = new File("db.gtdq");
             try (RandomAccessFile dbFile = new RandomAccessFile(file, "r")) {
                 String dbUrl = dbFile.readLine().split("url=")[1];
                 String dbUsername = dbFile.readLine().split("username=")[1];
                 String dbPassword = dbFile.readLine().split("password=")[1];
-                MySqlUtil.initConn(dbUrl.trim(), dbUsername.trim(), dbPassword.trim());
+                // MySqlUtil.initConn(dbUrl.trim(), dbUsername.trim(), dbPassword.trim());
+                MySqlUtil.init(dbUrl.trim(), dbUsername.trim(), dbPassword.trim());
             } catch (Exception e) {
                 updateMessage("连接到mysql数据库失败,请退出程序重新配置!");
                 return false;

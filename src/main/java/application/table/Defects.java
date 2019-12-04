@@ -35,7 +35,7 @@ public class Defects {
     // maxval1units maxval2units fromlatitudelongitude tolatitudelongitude
     // maxlatitudelongitude trackclass trackid defectfamily RunID
 
-    public static boolean save(List<List<String>> metaNames, List<List<String>> data, MyTask task) {
+    public static boolean save( List<List<String>> data, MyTask task) {
         task.log("defects表数据总量:" + data.size());
         Log.log.writeLog(0, "defects数据总量:" + data.size());
         StringBuilder sql = new StringBuilder("insert into alarm_copy1 (");
@@ -62,7 +62,7 @@ public class Defects {
                  */
                 if (i == 6) {
                     String runDataStr = rowData.get(i - 4);
-                    String runTimeStr = rowData.get(i-3);
+                    String runTimeStr = rowData.get(i - 3);
                     sql.append("\"").append(Util.getDataTime(runDataStr, runTimeStr)).append("\"").append(",");
                     continue;
                 }
@@ -84,32 +84,28 @@ public class Defects {
             sql = new StringBuilder(sql.substring(0, sql.toString().length() - 1) + "),");
         }
         String resultSql = sql.toString().substring(0, sql.toString().length() - 1) + ";";
-        //System.out.println(resultSql);
-        Connection connection = MySqlUtil.getConnection();
-        synchronized (connection) {
-            try {
-                if (connection.isClosed()) {
-                    return false;
-                }
-                Statement statement = connection.createStatement();
-                connection.setAutoCommit(false);
-                int num = statement.executeUpdate(resultSql);
-                connection.commit();
-                statement.close();
-                task.log("defects值插入" + num + "条成功!");
-                Log.log.writeLog(0, "defects值插入" + num + "条成功!");
-                sum += num;
-                return true;
-            } catch (SQLException e) {
-                e.printStackTrace();
-                MySqlUtil.rollback(connection);
-                Log.log.writeLog(-1, "数据插入异常，已回滚\n" + ExceptionUtil.getExceptionInfo(e));
-            } catch (Exception e) {
-                e.printStackTrace();
-                MySqlUtil.rollback(connection);
-                System.out.println("连接为空或者已关闭!" + e.getMessage());
-            }
+
+        Connection connection = null;
+        try {
+            connection = MySqlUtil.getConn0();
+            Statement statement = connection.createStatement();
+            int num = statement.executeUpdate(resultSql);
+            connection.commit();
+            statement.close();
+            MySqlUtil.returnConn(connection);
+            task.log("defects值插入" + num + "条成功!");
+            Log.log.writeLog(0, "defects值插入" + num + "条成功!");
+            sum += num;
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            MySqlUtil.rollback(connection);
+            Log.log.writeLog(-1, "数据插入异常，已回滚\n" + ExceptionUtil.getExceptionInfo(e));
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("获取连接失败！" + e.getMessage());
         }
+        MySqlUtil.returnConn(connection);
         return false;
     }
 

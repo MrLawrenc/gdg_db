@@ -92,7 +92,8 @@ public class Util {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        MySqlUtil.closeConnection();
+        //MySqlUtil.closeConnection();
+        MySqlUtil.close0();
         Log.log.close();
 
         RecordedInfo.recored.close();
@@ -122,10 +123,6 @@ public class Util {
 
     /**
      * 精度保证
-     *
-     * @param v
-     * @param scale
-     * @return
      */
     public static double round(double v, int scale) {
         if (scale < 0) {
