@@ -32,6 +32,7 @@ public class MySqlUtil {
                 connection.setAutoCommit(false);
                 connPool.add(connection);
                 System.out.println("mysql以初始化的连接数:" + (i + 1));
+                Log.log.writeLog(0, "mysql以初始化的连接数:" + (i + 1));
             }
             System.out.println("mysql连接池全部初始化完毕。。。。。。。。。。。。");
         } catch (SQLException e) {
@@ -71,6 +72,7 @@ public class MySqlUtil {
                 }
             }
             System.out.println("mysql连接池关闭数量:" + done);
+            Log.log.writeLog(0, "mysql连接池关闭数量:" + done);
         } catch (Exception e) {
             e.printStackTrace();
         }
