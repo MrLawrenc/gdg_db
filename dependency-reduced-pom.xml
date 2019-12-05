@@ -3,8 +3,9 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.gtdq</groupId>
   <artifactId>gdg_db</artifactId>
-  <version>1.0.1</version>
+  <version>1.0.2</version>
   <build>
+    <finalName>DbTool-${version}</finalName>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -33,7 +34,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>application.Launcher</mainClass>
+                  <mainClass>application.Main</mainClass>
                 </transformer>
               </transformers>
             </configuration>

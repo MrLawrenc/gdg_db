@@ -44,7 +44,7 @@ public class RecordedInfo {
 
     private RecordedInfo() {
         super();
-        getOutputStream();
+        // getOutputStream();
     }
 
 
@@ -90,7 +90,7 @@ public class RecordedInfo {
      *
      * @param fileFullPath 文件全路径
      */
-    private  void updateFile2State1(boolean isDelete, String fileFullPath) {
+    private void updateFile2State1(boolean isDelete, String fileFullPath) {
         File file = getRecoredFile();
         try (RandomAccessFile accessFile = new RandomAccessFile(file, "rw")) {
             String line = null;
@@ -268,6 +268,9 @@ public class RecordedInfo {
      * 关闭流
      */
     public void close() {
+        if (outStream == null) {
+            return;
+        }
         try {
             synchronized (outStream) {
                 System.out.println("关闭recored文件流!");

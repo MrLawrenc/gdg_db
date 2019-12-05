@@ -65,7 +65,7 @@ public class MySqlUtil {
             for (int i = 0; i < poolSize; i++) {
                 //poll可能返回null，但是有超时时间，可以有效防止死锁造成的资源泄漏,但是可能连接没有手动全部关闭(当某一个连接持有时间大于
                 // 10s的时候，会存在漏close的情况)
-                Connection connection = connPool.poll(1, TimeUnit.MINUTES);
+                Connection connection = connPool.poll(10, TimeUnit.MILLISECONDS);
                 if (connection != null && !connection.isClosed()) {
                     connection.close();
                     i++;
