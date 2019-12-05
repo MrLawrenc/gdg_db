@@ -6,10 +6,11 @@ import application.table.*;
 import javafx.concurrent.Task;
 
 import java.io.File;
-import java.sql.Connection;
+import java.sql.*;
 import java.sql.Date;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.*;
 
 /**
@@ -19,18 +20,24 @@ import java.util.*;
  */
 public class MyTask extends Task<String> {
     /**
-     * 该目录下所有已入库的记录
+     * 该目录下所有已成功入库的记录
      */
     private List<String> done;
+    /**
+     * 该目录下所有未成功入库的记录
+     */
+    private List<String> unFinished;
     /**
      * 本次未入库的记录
      */
     public List<String> notSave;
 
-    public MyTask(File parentFile, List<String> done) {
+    public MyTask(File parentFile, List<String> done, List<String> unFinished) {
         this.parentFile = parentFile;
         this.done = done;
         notSave = new ArrayList<>(done.size());
+        this.unFinished = unFinished;
+        startTime = System.currentTimeMillis();
     }
 
     private File parentFile;
@@ -39,6 +46,8 @@ public class MyTask extends Task<String> {
      */
     private String tableNamePre = "name:";
     private String tableDataPre = "data:";
+
+    private long startTime;
 
     /**
      * 暴露给外部更新日志的方法
@@ -95,7 +104,7 @@ public class MyTask extends Task<String> {
         //执行更新操作
         executeSqlUpdate();
         updateProgress(100, 100);
-        return "总共插入数据:tqi->" + TqiUtil.sum + "  tvalue->" + TValueUtil.sum + "  alarm->" + Defects.sum + "  kms->"
+        return LocalDateTime.now().toString() + "  总共插入数据:tqi->" + TqiUtil.sum + "  tvalue->" + TValueUtil.sum + "  alarm->" + Defects.sum + "  kms->"
                 + Kms.sum + "\n";
     }
 
@@ -186,12 +195,14 @@ public class MyTask extends Task<String> {
         }
 
         String id = UUID.randomUUID().toString();
+        java.util.Date date = new java.util.Date();
+        DateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         //先更新批次表
         String updateSql = "insert into rpt_gw_sumary(detect_batch_id,detect_batch_name,detect_device_code,detect_name,detect_year,detect_season,create_time) " +
                 "values ( \"" + id + "\",\"" + abstractInfo[0] + abstractInfo[1] + "\",\"" + abstractInfo[2]
                 + "\",\"" + detectName + "\",\"" + abstractInfo[0].split("年")[0] + "\",\"" + quarter
-                + "\",\"" + new Date(System.currentTimeMillis()) + "\");";
-        //System.out.println(updateSql);
+                + "\",\"" + simpleDateFormat.format(date) + "\");";
+
         try {
             Statement statement = connection.createStatement();
             int i = statement.executeUpdate(updateSql);
@@ -210,7 +221,7 @@ public class MyTask extends Task<String> {
                 int i3 = connection.createStatement().executeUpdate(sql3);
                 int i4 = connection.createStatement().executeUpdate(sql4);
                 connection.commit();
-                updateMessage("\n\ttqi表更新数量:" + i1 + "\n\tkms表更新数量:" + i2 + "\n\ttvalue表更新数量：" + i3);
+                updateMessage("\n\ttqi表更新数量:" + i1 + "\n\tkms表更新数量:" + i2 + "\n\talarm表更新数量:" + i4 + "\n\ttvalue表更新数量：" + i3);
                 Log.log.writeLog(0, "tqi表更新数量:" + i1 + "\tkms表更新数量:" + i2 + "\n\talarm表更新数量:" + i4
                         + "\ttvalue表更新数量：" + i3);
             }
@@ -268,7 +279,10 @@ public class MyTask extends Task<String> {
             this.notSave.add(notSave);
             return;
         }
-
+        if (unFinished.contains(flag)) {
+            String notSave = dbFileName + " " + Util.tables[tableNameIndex];
+            System.out.println(notSave + " 可能已入库，即将进行校验!");
+        }
         Connection conn0;
         try {
             conn0 = MySqlUtil.getConn0();
@@ -293,7 +307,7 @@ public class MyTask extends Task<String> {
                 success = Defects.save(allData.get(tableDataPre + Util.tables[tableNameIndex]), this);
                 break;
             default:
-                System.out.println("=====没有相应实现=====");
+                System.out.println("=====没有相应方法实现=====");
                 success = false;
         }
         if (success) {

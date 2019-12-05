@@ -24,6 +24,10 @@ import application.db.MySqlUtil;
 public class Util {
     public static List<String> exceptionName = new ArrayList<>();
     public static String[] tables = new String[]{"tvalue", "tqi", "kms", "defects", "curves"};
+    /**
+     * 和源tables是一一对应
+     */
+    public static String[] targetTables = new String[]{"rpt_gw_tvalue", "rpt_gw_tqi", "rpt_gw_kmscore", "alarm_copy1", "curves"};
 
     /**
      * 根据文件名获取其他信息 <br>

@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @SuppressWarnings("all")
 public class MySqlUtil {
-    private static int poolSize = 10;
+    private static int poolSize = 6;
     private static ArrayBlockingQueue<Connection> connPool = new ArrayBlockingQueue<>(poolSize);
 
 
@@ -43,7 +43,6 @@ public class MySqlUtil {
      * 获取连接
      */
     public static Connection getConn0() throws InterruptedException {
-        System.out.println("连接池剩余连接数："+connPool.size());
         //移除并返回头部元素，如果为空则阻塞
         return connPool.take();
     }
@@ -61,13 +60,17 @@ public class MySqlUtil {
      */
     public static void close0() {
         try {
+            int done = 0;
             for (int i = 0; i < poolSize; i++) {
-                Connection connection = connPool.take();
+                //poll可能返回null，但是有超时时间，可以有效防止死锁造成的资源泄漏,但是可能连接没有手动全部关闭(当某一个连接持有时间大于
+                // 10s的时候，会存在漏close的情况)
+                Connection connection = connPool.poll(1, TimeUnit.MINUTES);
                 if (connection != null && !connection.isClosed()) {
                     connection.close();
+                    i++;
                 }
             }
-            System.out.println("mysql连接池关闭完成...........");
+            System.out.println("mysql连接池关闭数量:" + done);
         } catch (Exception e) {
             e.printStackTrace();
         }

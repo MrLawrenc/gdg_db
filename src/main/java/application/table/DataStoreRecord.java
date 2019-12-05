@@ -32,7 +32,7 @@ public class DataStoreRecord {
             pst.setString(1, record.getParentFileName());
             pst.setString(2, record.getDbFileName());
             pst.setString(3, record.getTableName());
-            pst.setDate(4, record.getCreateTime());
+            pst.setTimestamp(4, record.getCreateTime());
             pst.execute();
             connection.commit();
         } catch (SQLException e) {
@@ -47,7 +47,7 @@ public class DataStoreRecord {
     public static void saveSuccess(Connection connection, DataStoreRecordPo record) {
         try {
             PreparedStatement pst = connection.prepareStatement(updateSql);
-            pst.setDate(1, record.getSuccessTime());
+            pst.setTimestamp(1, record.getSuccessTime());
 
             pst.setString(2, record.getParentFileName());
             pst.setString(3, record.getDbFileName());

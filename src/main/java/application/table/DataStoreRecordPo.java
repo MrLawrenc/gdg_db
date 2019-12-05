@@ -1,7 +1,8 @@
 package application.table;
 
 
-import java.sql.Date;
+import java.sql.Timestamp;
+import java.sql.Timestamp;
 
 /**
  * @author : LiuMingyao
@@ -25,8 +26,8 @@ public class DataStoreRecordPo {
     private String dbFileName;
     private String tableName;
     private int state;
-    private Date createTime;
-    private Date successTime;
+    private Timestamp createTime;
+    private Timestamp successTime;
 
     public String getParentFileName() {
         return parentFileName;
@@ -60,19 +61,19 @@ public class DataStoreRecordPo {
         this.state = state;
     }
 
-    public Date getCreateTime() {
+    public Timestamp getCreateTime() {
         return createTime;
     }
 
-    public void setCreateTime(Date createTime) {
+    public void setCreateTime(Timestamp createTime) {
         this.createTime = createTime;
     }
 
-    public Date getSuccessTime() {
+    public Timestamp getSuccessTime() {
         return successTime;
     }
 
-    public void setSuccessTime(Date successTime) {
+    public void setSuccessTime(Timestamp successTime) {
         this.successTime = successTime;
     }
 
@@ -81,12 +82,13 @@ public class DataStoreRecordPo {
         this.dbFileName = dbFileName;
         this.tableName = tableName;
         this.state = 0;
-        this.createTime = new Date(System.currentTimeMillis());
+
+        this.createTime = new Timestamp(System.currentTimeMillis());
     }
 
     public DataStoreRecordPo toSuccess() {
         this.state = 1;
-        this.successTime = new Date(System.currentTimeMillis());
+        this.successTime = new Timestamp(System.currentTimeMillis());
         return this;
     }
 }

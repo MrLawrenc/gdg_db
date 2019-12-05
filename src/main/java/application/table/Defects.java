@@ -9,6 +9,7 @@ import application.utils.Util;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,6 +44,7 @@ public class Defects {
     public static boolean save( List<List<String>> data, MyTask task) {
         task.log("defects表数据总量:" + data.size());
         Log.log.writeLog(0, "defects数据总量:" + data.size());
+        //fixme 还有 Utils成员变量的一个str数组，校验重复入库的
         StringBuilder sql = new StringBuilder("insert into alarm_copy1 (");
         for (String field : fields) {
             if ("".equals(field)) {

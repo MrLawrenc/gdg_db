@@ -60,13 +60,18 @@ public class MyController implements Initializable {
      */
     private AtomicBoolean running = new AtomicBoolean(false);
     /**
-     * 获取所有已入库的记录
+     * 根据parentFileName获取所有已入库的记录
      */
-    private String getRecordInfoSql = "select db_file_name,table_name from data_store_record where parent_file_name=? and state=1";
+    private String byParentFileSql = "select db_file_name,table_name,state from data_store_record where parent_file_name=?";
     /**
-     * 存储当前选中目录parentFile下面所有保存成功的数据,初始化容量根据给的资料确定(一个季度70个库，每个库5张表，大概是350条记录，其余做冗余)
+     * 根据当前选中目录parentFile，查询该目录下面所有保存成功的数据,state=1
+     * 初始化容量根据给的资料确定(一个季度70个库，每个库5张表，大概是350条记录，其余做冗余)
      */
     private List<String> done = Collections.synchronizedList(new ArrayList<>(500));
+    /**
+     * 根据当前选中目录parentFile，查询该目录下面所有开始过保存，但是未成功记录，state！=1
+     */
+    private List<String> unFinished = Collections.synchronizedList(new ArrayList<>(500));
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -152,7 +157,7 @@ public class MyController implements Initializable {
 
         running.compareAndSet(false, true);
         progressBar.setProgress(0.01);
-        MyTask task = new MyTask(selectFile, done);
+        MyTask task = new MyTask(selectFile, done, unFinished);
         // 监听task的updateMessage方法,实现日志更新
         task.messageProperty().addListener(new ChangeListener<String>() {
             @Override
@@ -199,7 +204,7 @@ public class MyController implements Initializable {
                 if (task.notSave.size() > 0) {
                     String result = "";
                     for (String notSave : task.notSave) {
-                        result += "\t"+notSave + "\n";
+                        result += "\t" + notSave + "\n";
                     }
                     log.appendText("本次未入库信息如下:\n" + result);
                 }
@@ -217,17 +222,23 @@ public class MyController implements Initializable {
     public void initFileInfo() {
         try {
             Connection conn = MySqlUtil.getConn0();
-            PreparedStatement statement = conn.prepareStatement(getRecordInfoSql);
+            PreparedStatement statement = conn.prepareStatement(byParentFileSql);
             statement.setString(1, selectFile.getName());
             ResultSet resultSet = statement.executeQuery();
             conn.commit();
             while (resultSet.next()) {
-                done.add(resultSet.getString("db_file_name") + resultSet.getString("table_name"));
+                int state = resultSet.getInt("state");
+                if (state == 1) {
+                    done.add(resultSet.getString("db_file_name") + resultSet.getString("table_name"));
+                } else {
+                    unFinished.add(resultSet.getString("db_file_name") + resultSet.getString("table_name"));
+                }
             }
             resultSet.close();
             statement.close();
             MySqlUtil.returnConn(conn);
-            System.out.println("已入库信息获取成功,已入库表数量:" + done.size());
+            System.out.println("已入库信息获取成功,入库成功表数量:" + done.size());
+            System.out.println("已入库信息获取成功,入库失败表数量:" + unFinished.size());
         } catch (Exception e) {
             e.printStackTrace();
         }
