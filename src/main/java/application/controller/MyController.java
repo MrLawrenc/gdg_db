@@ -1,7 +1,10 @@
 package application.controller;
 
 import application.db.MySqlUtil;
-import application.utils.*;
+import application.utils.Log;
+import application.utils.MyTask;
+import application.utils.ThreadUtil;
+import application.utils.Util;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -10,15 +13,16 @@ import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
+import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 
-import java.io.*;
+import java.io.File;
+import java.io.RandomAccessFile;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,6 +41,8 @@ public class MyController implements Initializable {
     private TextArea log;
     @FXML
     private ProgressBar progressBar;
+    @FXML
+    private Text plan;
 
 
     /**
@@ -75,6 +81,7 @@ public class MyController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        plan.setText("");
         batch.setDisable(true);
         initDialog();
         //parentFilePath.setText("E:\\\\工电供资料\\\\document\\\\6.客户资料\\\\工务\\\\工务检测数据\\\\2019年第三季度综合检测车联检");
@@ -176,7 +183,7 @@ public class MyController implements Initializable {
             public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
                 // System.out.println("进度条值:" + newValue.doubleValue());
                 progressBar.setProgress(newValue.doubleValue());
-
+                plan.setText((int) (newValue.doubleValue() * 100) + "%");
             }
         });
 
