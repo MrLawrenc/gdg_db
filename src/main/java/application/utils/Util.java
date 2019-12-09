@@ -160,22 +160,12 @@ public class Util {
      * @throws IOException
      */
     public static void copyFileUsingFileChannels(File source, File dest) {
-        FileChannel inputChannel = null;
-        FileChannel outputChannel = null;
-        try {
-            inputChannel = new FileInputStream(source).getChannel();
-            outputChannel = new FileOutputStream(dest).getChannel();
+        try (FileChannel inputChannel = new FileInputStream(source).getChannel(); FileChannel outputChannel = new FileOutputStream(dest).getChannel()) {
             outputChannel.transferFrom(inputChannel, 0, inputChannel.size());
         } catch (Exception e) {
             // TODO: handle exception
-        } finally {
-            try {
-                inputChannel.close();
-                outputChannel.close();
-            } catch (Exception e) {
-                // TODO: handle exception
-            }
         }
+        // TODO: handle exception
     }
 
     /**
